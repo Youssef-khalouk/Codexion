@@ -5,7 +5,7 @@ CC = cc
 
 CFLAGS = -Wall -Wextra -Werror
 
-CODEXION_SRC =
+CODEXION_SRC = parser.c proccess.c 
 
 CODEXION_OBJS = $(CODEXION_SRC:.c=.o)
 

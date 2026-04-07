@@ -1,32 +1,56 @@
 
 #include "codexion.h"
 
-void* my_function(void* arg){
+static void*	my_function(void* arg){
 	int i = 10;
 	printf("thread is runing here -> %s:\n", (char*)arg);
 	while (i){
 		printf("\tcount -> %d\n", i);
 		i--;
 	}
-
 	return NULL;
 }
 
-
-int main(int argc, char **argv)
+static void	free_data(data_t* data)
 {
-	data_t* data;
-	if (argc > 8)
+	free(data->coders);
+	free(data->dongles);
+	free(data);	
+}
+
+static void	init_coders_and_dongles(data_t* data)
+{
+	int	i;
+	
+	i = 0;
+	data->coders = malloc(sizeof(coder_t) * data->number_of_coders);
+	data->dongles = malloc(sizeof(usb_dongle_t) * data->number_of_coders);
+	while (i < data->number_of_coders)
 	{
-		fprintf(stderr, "there is more arguments!");
+		data->coders[i].id = i;
+		data->coders[i].last_proccess_time = 0;
+		// data->dongles[i].dongle = ?;
+		data->dongles[i].dongle_id = i;	
+		i++;
+	}
+}
+
+int	main(int argc, char **argv)
+{
+	data_t*	data;
+
+	if (argc > 9)
+	{
+		fprintf(stderr, "there is more arguments!\n");
 		return (1);
 	}
-	if (argc < 8)
+	if (argc < 9)
 	{
-		fprintf(stderr, "your arguments is not enugh!");
+		fprintf(stderr, "your arguments is not enugh!\n");
 		return (1);
 	}
 	data = parse_args(argv);
+	init_coders_and_dongles(data);
 	if (data->error)
 		return (1);
 
@@ -38,5 +62,6 @@ int main(int argc, char **argv)
 	pthread_join(thread2, NULL);
 	
 	printf("Back in main\n");
-	return (0);
+
+	return (free_data(data), 0);
 }
