@@ -39,20 +39,10 @@ int	main(int argc, char **argv)
 {
 	data_t*	data;
 
-	if (argc > 9)
-	{
-		fprintf(stderr, "there is more arguments!\n");
-		return (1);
-	}
-	if (argc < 9)
-	{
-		fprintf(stderr, "your arguments is not enugh!\n");
-		return (1);
-	}
-	data = parse_args(argv);
+	data = parse_args(argc, argv);
 	init_coders_and_dongles(data);
 	if (data->error)
-		return (1);
+		return (free_data(data), 1);
 
 	pthread_t thread1;
 	pthread_t thread2;

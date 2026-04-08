@@ -12,6 +12,7 @@ static char	to_int(int *num, char *str)
 		if (str[i] < '0' || str[i] > '9')
 		{
 			printf("the argument '%s' is not valid.\n", str);
+			*num = 0;
 			return (0);
 		}
 		break;
@@ -21,15 +22,32 @@ static char	to_int(int *num, char *str)
 	return (1);
 }
 
-
-data_t*	parse_args(char **argv)
+static int	check_args(int argc)
 {
-	int num;
+	if (argc > 9)
+	{
+		fprintf(stderr, "there is more arguments!\n");
+		return (1);
+	}
+	if (argc < 9)
+	{
+		fprintf(stderr, "the arguments is not enugh!\n");
+		return (1);
+	}
+	return (0);
+}
 
+
+data_t*	parse_args(int argc, char **argv)
+{
 	data_t* data = malloc(sizeof(data_t));
 	data->error = 0;
-	if (!to_int(&num, argv[1]))
+	if (check_args(argc))
+	{
 		data->error = 1;
+		data->number_of_coders = 0;
+		return (data);
+	}
 	if (!to_int(&data->number_of_coders, argv[1]))
 		data->error = 1;
 	if (!to_int(&data->time_to_burnout, argv[2]))

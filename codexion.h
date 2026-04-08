@@ -37,6 +37,6 @@ typedef struct data_t
 	coder_t*	coders;
 }	data_t;
 
-data_t*	parse_args(char **argv);
+data_t*	parse_args(int argc, char **argv);
 
 #endif
