@@ -2,23 +2,24 @@
 
 static char	to_int(int *num, char *str)
 {
-	int	i;
+	long	i;
+	int	count;
 	
 	i = 0;
-	while (str[i])
-	{
-		if ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)
-			continue;
-		if (str[i] < '0' || str[i] > '9')
-		{
-			printf("the argument '%s' is not valid.\n", str);
-			*num = 0;
-			return (0);
-		}
-		break;
+	count = 0;
+	if (str[i] == '+' || str[i] == '-')
 		i++;
+	while (str[i + count] >= '0' && str[i + count] <= '9')
+		count++;
+	i = atol(str);
+	if (!count || count > 10 || 
+		i > 2147483647 || i < -2147483648)
+	{
+		printf("the argument '%s' is not valid.\n", str);
+		*num = 0;
+		return (0);
 	}
-	*num = atoi(str);
+	*num = (int)i;
 	return (1);
 }
 
