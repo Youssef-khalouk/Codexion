@@ -39,4 +39,6 @@ typedef struct data_t
 
 data_t*	parse_args(int argc, char **argv);
 
+void proccess(data_t* data);
+
 #endif
