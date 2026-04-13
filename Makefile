@@ -5,7 +5,7 @@ CC = cc
 
 CFLAGS = -Wall -Wextra -Werror
 
-CODEXION_SRC = parser.c proccess.c 
+CODEXION_SRC = parser.c proccess.c operations.c
 
 CODEXION_OBJS = $(CODEXION_SRC:.c=.o)
 
@@ -16,6 +16,9 @@ $(NAME): $(CODEXION_OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+run:
+	./codexion 4 1000 500 100 100 5 5 fifo
 
 clean:
 	rm -rf $(CODEXION_OBJS)

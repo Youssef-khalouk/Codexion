@@ -3,6 +3,14 @@
 
 static void	free_data(data_t* data)
 {
+	int	i;
+
+	i = 0;
+	while (i < data->number_of_coders)
+	{
+		free(data->coders[i].thread_id);
+		i++;
+	}
 	free(data->coders);
 	free(data->dongles);
 	free(data);	
@@ -19,7 +27,8 @@ static void	init_coders_and_dongles(data_t* data)
 	{
 		data->coders[i].id = i;
 		data->coders[i].last_proccess_time = 0;
-		data->dongles[i].dongle_id = i;	
+		data->dongles[i].id = i;
+		pthread_mutex_init(&data->dongles[i].dongle, NULL);
 		i++;
 	}
 }
