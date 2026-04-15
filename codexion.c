@@ -26,8 +26,9 @@ static void	init_coders_and_dongles(data_t* data)
 	while (i < data->number_of_coders)
 	{
 		data->coders[i].id = i;
-		data->coders[i].last_proccess_time = 0;
+		data->coders[i].last_proccess_time = get_time_ms();
 		data->dongles[i].id = i;
+		data->dongles[i].set_down_time = 0;
 		pthread_mutex_init(&data->dongles[i].dongle, NULL);
 		i++;
 	}
@@ -44,7 +45,6 @@ int	main(int argc, char **argv)
 
 	proccess(data);
 
-	printf("Back in main\n");
 
 	return (free_data(data), 0);
 }

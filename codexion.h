@@ -12,12 +12,13 @@ typedef struct usb_dongle_t
 {
 	int				id;
 	pthread_mutex_t	dongle;
+	long long		set_down_time;
 }	usb_dongle_t;
 
 typedef struct coder_t
 {
 	int				id;
-	long			last_proccess_time;
+	long long		last_proccess_time;
 	usb_dongle_t* 	right_dongle;
 	usb_dongle_t* 	left_dongle;
 	pthread_t*		thread_id;
@@ -26,7 +27,7 @@ typedef struct coder_t
 typedef struct data_t
 {
 	int				number_of_coders;
-	int			time_to_burnout;
+	int				time_to_burnout;
 	int				time_to_compile;
 	int				time_to_debug;
 	int				time_to_refactor;
@@ -53,5 +54,7 @@ void compile(proccess_args_t* args, long my_time);
 void debug(proccess_args_t* args, long my_time);
 
 void refactor(proccess_args_t* args, long my_time);
+
+long long get_time_ms(void);
 
 #endif
