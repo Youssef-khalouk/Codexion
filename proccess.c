@@ -2,11 +2,11 @@
 
 long long get_time_ms(void)
 {
-    struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-        return -1; // error
+    struct timeval tv;
 
-    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+    if (gettimeofday(&tv, NULL) != 0)
+        return -1;
+    return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
 }
 
 void setback_right_dongle(proccess_args_t* args, int dongle_id, char is_used)
@@ -25,57 +25,19 @@ void setback_left_dongle(proccess_args_t* args, int dongle_id, char is_used)
 	args->coder->left_dongle = NULL;
 }
 
-int get_right_dongle(proccess_args_t* args, long long start_time, int id)
-{
-	long long	time_passed;
-	// if dongle is not cooldown calculate the left time
-	// and sleep for that time and check again if its ready to use
-	// becuse another thread could take it thats why 
-	while (1)
-	{
-		pthread_mutex_lock(&args->data->dongles[id].dongle);
-		time_passed = get_time_ms() - args->data->dongles[id].set_down_time;
 
-		if (get_time_ms() - args->coder->last_proccess_time > args->data->time_to_burnout)
-		{
-			printf("%lld %d burned out\n", get_time_ms() - start_time, args->coder->id);
-			return (setback_right_dongle(args, id, 0), 0);
-		}
-		if (time_passed >= args->data->dongle_cooldown)
-		{
-			args->coder->right_dongle = &args->data->dongles[id];
-			printf("%lld %d has token a dongle %d.\n",
-				get_time_ms() - start_time , args->coder->id, args->coder->right_dongle->id);
-			return (1);
-		}
-		pthread_mutex_unlock(&args->data->dongles[id].dongle);
-		usleep((args->data->dongle_cooldown - time_passed) * 1000);
-	}
+
+int request_right_dongle(proccess_args_t* args, long long start_time, int id)
+{
+	
+}
+int request_left_dongle(proccess_args_t* args, long long start_time, int id)
+{
+	
 }
 
-int get_left_dongle(proccess_args_t* args, long long start_time, int id)
-{
-	long long	time_passed;
-	while (1)
-	{
-		pthread_mutex_lock(&args->data->dongles[id].dongle);
-		time_passed = get_time_ms() - args->data->dongles[id].set_down_time;
-		if (get_time_ms() - args->coder->last_proccess_time > args->data->time_to_burnout)
-		{
-			printf("%lld %d burned out\n", get_time_ms() - start_time, args->coder->id);
-			return (setback_left_dongle(args, id, 0), 0);
-		}
-		if (time_passed >= args->data->dongle_cooldown)
-		{
-			args->coder->left_dongle = &args->data->dongles[id];
-			printf("%lld %d has token a dongle %d.\n",
-				get_time_ms() - start_time, args->coder->id, args->coder->left_dongle->id);
-			return (1);
-		}
-		pthread_mutex_unlock(&args->data->dongles[id].dongle);
-		usleep((args->data->dongle_cooldown - time_passed) * 1000);
-	}
-}
+
+
 
 static void* coder_proccess(void* args_t)
 {
@@ -87,26 +49,10 @@ static void* coder_proccess(void* args_t)
 	proccess_args_t* args = (proccess_args_t*)args_t;
 	compiled_times = 0;
 	start_time = get_time_ms();
-
 	while (1)
 	{
-		right_dongle_id = args->coder->id;
-		left_dongle_id = (right_dongle_id+1) % args->data->number_of_coders;
-
-		if (args->coder->id % 2)
-		{
-			if (!get_right_dongle(args, start_time, right_dongle_id))
-				return (free(args_t), NULL);
-			if (!get_left_dongle(args, start_time, left_dongle_id))
-				return (setback_right_dongle(args, right_dongle_id, 0), free(args_t), NULL);
-		}
-		else
-		{
-			if (!get_left_dongle(args, start_time, left_dongle_id))
-				return (NULL);
-			if (!get_right_dongle(args, start_time, right_dongle_id))
-				return (setback_left_dongle(args, left_dongle_id, 0), free(args_t), NULL);
-		}
+		right_dongle_id = request_right_dongle(args, start_time, right_dongle_id);
+		left_dongle_id = request_left_dongle(args, start_time, left_dongle_id);
 
 		compile(args, get_time_ms() - start_time);
 		debug(args, get_time_ms() - start_time);
@@ -115,8 +61,6 @@ static void* coder_proccess(void* args_t)
 		setback_right_dongle(args, right_dongle_id, 1);
 		setback_left_dongle(args, left_dongle_id, 1);
 
-
-		usleep(1000);
 		args->coder->last_proccess_time = get_time_ms();
 		compiled_times++;
 		// stop the coder when he finish hes compiles

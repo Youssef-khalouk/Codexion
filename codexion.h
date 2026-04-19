@@ -8,11 +8,23 @@
 #include <pthread.h>
 #include <time.h>
 
+typedef struct s_req {
+	int		id;
+	long	key;	/* arrival time (fifo) or deadline (edf) */
+}	t_req;
+
+typedef struct s_pq {
+	t_req	data[256];
+	int		n;
+}	t_queue;
+
 typedef struct usb_dongle_t
 {
 	int				id;
 	pthread_mutex_t	dongle;
+	pthread_cond_t	scheduler_cond;
 	long long		set_down_time;
+	t_queue			queue;
 }	usb_dongle_t;
 
 typedef struct coder_t
