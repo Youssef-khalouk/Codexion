@@ -47,6 +47,7 @@ typedef struct data_t
 	int				dongle_cooldown;
 	char*			scheduler;
 	int				error;
+	volatile int	stop;
 	usb_dongle_t*	dongles;
 	coder_t*		coders;
 }	data_t;
