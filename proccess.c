@@ -1,6 +1,6 @@
 #include "codexion.h"
 
-long long get_time_ms(void)
+long long ms_time(void)
 {
     struct timeval tv;
 
@@ -9,35 +9,26 @@ long long get_time_ms(void)
     return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
 }
 
-void setback_right_dongle(proccess_args_t* args, int dongle_id, char is_used)
-{
-	if (is_used)
-		args->data->dongles[dongle_id].set_down_time = get_time_ms();
-	pthread_mutex_unlock(&args->data->dongles[dongle_id].dongle);
-	args->coder->right_dongle = NULL;
-}
 
-void setback_left_dongle(proccess_args_t* args, int dongle_id, char is_used)
+
+void setback_dongles(proccess_args_t* args)
 {
-	if (is_used)
-		args->data->dongles[dongle_id].set_down_time = get_time_ms();
-	pthread_mutex_unlock(&args->data->dongles[dongle_id].dongle);
+	if (args->coder->right_dongle)
+		args->coder->right_dongle->set_down_time = ms_time();
+	pthread_mutex_unlock(args->coder->right_dongle);
+	args->coder->right_dongle = NULL;
+
+	if (args->coder->left_dongle)
+		args->coder->left_dongle->set_down_time = ms_time();
+	pthread_mutex_unlock(args->coder->left_dongle);
 	args->coder->left_dongle = NULL;
 }
 
 
-
-int request_right_dongle(proccess_args_t* args, long long start_time, int id)
+int request_dongles(proccess_args_t* args, long long start_time)
 {
 	
 }
-int request_left_dongle(proccess_args_t* args, long long start_time, int id)
-{
-	
-}
-
-
-
 
 static void* coder_proccess(void* args_t)
 {
@@ -48,21 +39,23 @@ static void* coder_proccess(void* args_t)
 
 	proccess_args_t* args = (proccess_args_t*)args_t;
 	compiled_times = 0;
-	start_time = get_time_ms();
+	start_time = ms_time();
 	while (1)
 	{
-		right_dongle_id = request_right_dongle(args, start_time, right_dongle_id);
-		left_dongle_id = request_left_dongle(args, start_time, left_dongle_id);
+		request_dongles(args, start_time);
 
-		compile(args, get_time_ms() - start_time);
-		debug(args, get_time_ms() - start_time);
-		refactor(args, get_time_ms() - start_time);
+		if (!compile(args, start_time))
+			return (free(args_t), NULL);
+		if (!debug(args, start_time))
+			return (free(args_t), NULL);
+		if (!refactor(args, start_time))
+			return (free(args_t), NULL);
 
-		setback_right_dongle(args, right_dongle_id, 1);
-		setback_left_dongle(args, left_dongle_id, 1);
+		setback_dongles(args);
 
-		args->coder->last_proccess_time = get_time_ms();
+		args->coder->last_proccess_time = ms_time();
 		compiled_times++;
+
 		// stop the coder when he finish hes compiles
 		if (compiled_times >= args->data->number_of_compiles_required)
 			return (free(args_t), NULL);

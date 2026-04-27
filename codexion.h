@@ -7,6 +7,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
+#include <sys/time.h>
 
 typedef struct s_req {
 	int		id;
@@ -50,6 +51,8 @@ typedef struct data_t
 	volatile int	stop;
 	usb_dongle_t*	dongles;
 	coder_t*		coders;
+	pthread_cond_t	stop_condation;
+	pthread_mutex_t	stop_mutix;
 }	data_t;
 
 typedef struct proccess_args_t
@@ -62,12 +65,12 @@ data_t*	parse_args(int argc, char **argv);
 
 void proccess(data_t* data);
 
-void compile(proccess_args_t* args, long my_time);
+int compile(proccess_args_t* args, long my_time);
 
-void debug(proccess_args_t* args, long my_time);
+int debug(proccess_args_t* args, long my_time);
 
-void refactor(proccess_args_t* args, long my_time);
+int refactor(proccess_args_t* args, long my_time);
 
-long long get_time_ms(void);
+long long ms_time(void);
 
 #endif

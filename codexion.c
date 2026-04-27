@@ -10,12 +10,14 @@ static void	free_data(data_t* data)
 	{
 		pthread_mutex_destroy(&data->dongles[i].dongle);
 		free(data->coders[i].thread_id);
+		pthread_cond_destroy(&data->dongles[i].scheduler_cond);
 		i++;
 	}
-	pthread_cond_destroy(&data->scheduler_cond);
+	pthread_mutex_destroy(&data->stop_mutix);
+	pthread_cond_destroy(&data->stop_condation);
 	free(data->coders);
 	free(data->dongles);
-	free(data);	
+	free(data);
 }
 
 static void	init_coders_and_dongles(data_t* data)
@@ -25,13 +27,18 @@ static void	init_coders_and_dongles(data_t* data)
 	i = 0;
 	data->coders = malloc(sizeof(coder_t) * data->number_of_coders);
 	data->dongles = malloc(sizeof(usb_dongle_t) * data->number_of_coders);
-	pthread_cond_init(&data->scheduler_cond, NULL);
+
+	pthread_mutex_init(&data->stop_mutix, NULL);
+	pthread_cond_init(&data->stop_condation, NULL);
 	while (i < data->number_of_coders)
 	{
 		data->coders[i].id = i;
-		data->coders[i].last_proccess_time = get_time_ms();
+		data->coders[i].last_proccess_time = ms_time();
+		data->coders[i].right_dongle = NULL;
+		data->coders[i].left_dongle = NULL;
 		data->dongles[i].id = i;
 		data->dongles[i].set_down_time = 0;
+		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].dongle, NULL);
 		i++;
 	}
@@ -47,7 +54,6 @@ int	main(int argc, char **argv)
 		return (free_data(data), 1);
 
 	proccess(data);
-
 
 	return (free_data(data), 0);
 }
