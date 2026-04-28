@@ -21,7 +21,7 @@ int compile(proccess_args_t* args, long start_time)
     int         ret;
 
     curent_time = ms_time();
-    printf("%ld %d is compiling\n", curent_time - start_time, args->coder->id);
+    printf("%lld %d is compiling\n", curent_time - start_time, args->coder->id);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_compile);
@@ -29,7 +29,7 @@ int compile(proccess_args_t* args, long start_time)
     while (!args->data->stop && (ms_time() - curent_time) < args->data->time_to_compile)
     {
         ret = pthread_cond_timedwait(&args->data->stop_condation, &args->data->stop_mutix, &ts);
-        if (ret == ETIMEDOUT)
+        if (ret == 110) // 110 is a timeout -> ETIMEDOUT
             break;
     }
     stopped = args->data->stop;
@@ -46,7 +46,7 @@ int debug(proccess_args_t* args, long start_time)
     int         ret;
 
     curent_time = ms_time();
-    printf("%ld %d is debugging\n", curent_time - start_time, args->coder->id);
+    printf("%lld %d is debugging\n", curent_time - start_time, args->coder->id);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_debug);
@@ -54,7 +54,7 @@ int debug(proccess_args_t* args, long start_time)
     while (!args->data->stop && (ms_time() - curent_time) < args->data->time_to_debug)
     {
         ret = pthread_cond_timedwait(&args->data->stop_condation, &args->data->stop_mutix, &ts);
-        if (ret == ETIMEDOUT)
+        if (ret == 110) // 110 is a timeout -> ETIMEDOUT
             break;
     }
     stopped = args->data->stop;
@@ -71,7 +71,7 @@ int refactor(proccess_args_t* args, long start_time)
     int         ret;
 
     curent_time = ms_time();
-    printf("%ld %d is refactoring\n", curent_time - start_time, args->coder->id);
+    printf("%lld %d is refactoring\n", curent_time - start_time, args->coder->id);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_refactor);
@@ -79,7 +79,7 @@ int refactor(proccess_args_t* args, long start_time)
     while (!args->data->stop && (ms_time() - curent_time) < args->data->time_to_refactor)
     {
         ret = pthread_cond_timedwait(&args->data->stop_condation, &args->data->stop_mutix, &ts);
-        if (ret == ETIMEDOUT)
+        if (ret == 110) // 110 is a timeout -> ETIMEDOUT
             break;
     }
     stopped = args->data->stop;

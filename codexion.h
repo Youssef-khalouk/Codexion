@@ -34,7 +34,9 @@ typedef struct coder_t
 	long long		last_proccess_time;
 	usb_dongle_t* 	right_dongle;
 	usb_dongle_t* 	left_dongle;
-	pthread_t*		thread_id;
+	pthread_t		thread_id;
+	int				working;
+	pthread_mutex_t	working_mutix;
 }	coder_t;
 
 typedef struct data_t
@@ -53,6 +55,12 @@ typedef struct data_t
 	coder_t*		coders;
 	pthread_cond_t	stop_condation;
 	pthread_mutex_t	stop_mutix;
+
+	pthread_mutex_t	queue_mutex;
+	pthread_cond_t	queue_cond;
+	unsigned int	serving_ticket;
+	unsigned int	next_ticket;
+
 }	data_t;
 
 typedef struct proccess_args_t

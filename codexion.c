@@ -8,13 +8,15 @@ static void	free_data(data_t* data)
 	i = 0;
 	while (i < data->number_of_coders)
 	{
+		pthread_mutex_destroy(&data->coders[i].working_mutix);
 		pthread_mutex_destroy(&data->dongles[i].dongle);
-		free(data->coders[i].thread_id);
 		pthread_cond_destroy(&data->dongles[i].scheduler_cond);
 		i++;
 	}
 	pthread_mutex_destroy(&data->stop_mutix);
 	pthread_cond_destroy(&data->stop_condation);
+	pthread_mutex_destroy(&data->queue_mutex);
+	pthread_cond_destroy(&data->queue_cond);
 	free(data->coders);
 	free(data->dongles);
 	free(data);
@@ -30,12 +32,18 @@ static void	init_coders_and_dongles(data_t* data)
 
 	pthread_mutex_init(&data->stop_mutix, NULL);
 	pthread_cond_init(&data->stop_condation, NULL);
+	pthread_mutex_init(&data->queue_mutex, NULL);
+	pthread_cond_init(&data->queue_cond, NULL);
+	data->serving_ticket = 0;
+	data->next_ticket = 0;
 	while (i < data->number_of_coders)
 	{
-		data->coders[i].id = i;
+		data->coders[i].id = i + 1;
 		data->coders[i].last_proccess_time = ms_time();
 		data->coders[i].right_dongle = NULL;
 		data->coders[i].left_dongle = NULL;
+		data->coders[i].working = 0;
+		pthread_mutex_init(&data->coders[i].working_mutix, NULL);
 		data->dongles[i].id = i;
 		data->dongles[i].set_down_time = 0;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
@@ -44,16 +52,63 @@ static void	init_coders_and_dongles(data_t* data)
 	}
 }
 
+
+void* monitor(void* d)
+{
+	data_t*	data;
+	int		index;
+	int		all_done;
+
+	data = d;
+	index = 0;
+	all_done = 1;
+	while (1)
+	{
+		if (index == data->number_of_coders)
+		{
+			usleep(2000);
+			index = 0;
+			if (all_done)
+				return (NULL);
+			all_done = 1;
+		}
+		pthread_mutex_lock(&data->coders[index].working_mutix);
+		if (data->coders[index].working)
+		{	
+			pthread_mutex_unlock(&data->coders[index].working_mutix);
+			index++;
+			continue;
+		}
+		all_done = 0;
+		pthread_mutex_unlock(&data->coders[index].working_mutix);
+		if ((ms_time() - data->coders[index].last_proccess_time) >= data->time_to_burnout)
+		{
+			pthread_mutex_lock(&data->stop_mutix);
+			data->stop = 1;
+			pthread_cond_broadcast(&data->stop_condation);
+			pthread_mutex_unlock(&data->stop_mutix);
+			printf("1204 %d burned out\n", data->coders[index].id);
+			break;
+		}
+		index++;
+	}
+	return NULL;
+}
+
+
 int	main(int argc, char **argv)
 {
 	data_t*	data;
+	pthread_t	monitor_thread;
 
 	data = parse_args(argc, argv);
 	init_coders_and_dongles(data);
 	if (data->error)
-		return (free_data(data), 1);
-
+	return (free_data(data), 1);
+	
+	pthread_create(&monitor_thread, NULL, monitor, (void*)data);
 	proccess(data);
+	pthread_join(monitor_thread, NULL);
 
 	return (free_data(data), 0);
 }
