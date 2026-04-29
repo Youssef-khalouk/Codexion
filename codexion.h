@@ -14,15 +14,18 @@ typedef struct s_req {
 	long	key;	/* arrival time (fifo) or deadline (edf) */
 }	t_req;
 
-typedef struct s_pq {
-	t_req	data[256];
-	int		n;
-}	t_queue;
+typedef struct s_queue
+{
+	int buffer[256];
+	int front;
+	int rear;
+	int size;
+} t_queue;
 
 typedef struct usb_dongle_t
 {
 	int				id;
-	pthread_mutex_t	dongle;
+	pthread_mutex_t	mutix_dongle;
 	pthread_cond_t	scheduler_cond;
 	long long		set_down_time;
 	t_queue			queue;
@@ -32,6 +35,8 @@ typedef struct coder_t
 {
 	int				id;
 	long long		last_proccess_time;
+	int				r_d_id;
+	int				l_d_id;
 	usb_dongle_t* 	right_dongle;
 	usb_dongle_t* 	left_dongle;
 	pthread_t		thread_id;
@@ -55,11 +60,7 @@ typedef struct data_t
 	coder_t*		coders;
 	pthread_cond_t	stop_condation;
 	pthread_mutex_t	stop_mutix;
-
-	pthread_mutex_t	queue_mutex;
-	pthread_cond_t	queue_cond;
-	unsigned int	serving_ticket;
-	unsigned int	next_ticket;
+	long long		start_time;
 
 }	data_t;
 
