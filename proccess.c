@@ -1,5 +1,19 @@
 #include "codexion.h"
 
+void print_queue(t_queue* queue)
+{
+	int i = 0;
+	printf("[ ");
+	
+	while (i < queue->size)
+	{
+		printf("%d, ", queue->buffer[i]);
+		i++;
+	}
+	printf(" ]");
+
+}
+
 void	push_back(t_queue* queue, int value)
 {
 	queue->buffer[queue->rear] = value;
@@ -26,7 +40,6 @@ int pop_front(t_queue* queue)
 	return (value);
 }
 
-
 long long ms_time(void)
 {
     struct timeval tv;
@@ -35,7 +48,6 @@ long long ms_time(void)
         return -1;
     return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
 }
-
 
 void setback_dongles(proccess_args_t* args)
 {
@@ -72,9 +84,7 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
 			return (0);
 		}
 		pthread_mutex_unlock(&args->data->stop_mutix);
-
         pthread_mutex_lock(&dongle->mutix_dongle);
-
         elapsed = ms_time() - dongle->set_down_time;
         if (elapsed >= args->data->dongle_cooldown)
 		{
@@ -89,79 +99,68 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
     }
 }
 
-int	fifo_r_right_d(proccess_args_t* args)
+int	fifo_rq_right_d(proccess_args_t* args)
 {
 	usb_dongle_t*	r_dongle;
 
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
-	pthread_mutex_lock(&r_dongle->mutix_dongle);
-	push_back(&r_dongle->queue, args->coder->id);
-	
+	pthread_mutex_lock(&r_dongle->mutix_queue);
 	while (1)
 	{
 		if (r_dongle->queue.buffer[0] == args->coder->id)
 			break;
-		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_dongle);
+		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_queue);
 	}
-	pthread_mutex_unlock(&r_dongle->mutix_dongle);
+	pthread_mutex_unlock(&r_dongle->mutix_queue);
 
 	if (!take_dongle_when_ready(args, r_dongle, 'r'))
 		return (0);
+	printf("%-6lld %d has taken right dongle\n", ms_time() - args->start_time, args->coder->id);
+	fflush(stdout);
 	return (1);
 }
 
-int	fifo_r_left_d(proccess_args_t* args)
+int	fifo_rq_left_d(proccess_args_t* args)
 {
 	usb_dongle_t*	l_dongle;
 
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
-	pthread_mutex_lock(&l_dongle->mutix_dongle);
-	push_back(&l_dongle->queue, args->coder->id);
-	
+	pthread_mutex_lock(&l_dongle->mutix_queue);
 	while (1)
 	{
 		if (l_dongle->queue.buffer[0] == args->coder->id)
 			break;
-		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_dongle);
+		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_queue);
 	}
-	pthread_mutex_unlock(&l_dongle->mutix_dongle);
+	pthread_mutex_unlock(&l_dongle->mutix_queue);
 
 	if (!take_dongle_when_ready(args, l_dongle, 'l'))
 		return (0);
+	printf("%-6lld %d has taken left dongle\n", ms_time() - args->start_time, args->coder->id);
+	fflush(stdout);
 	return (1);
 }
 
-int fifo_request_dongles(proccess_args_t* args, long long start_time)
+int fifo_request_dongles(proccess_args_t* args)
 {
-	// pthread_mutex_lock(&r_dongle->mutix_dongle);
-	// push_back(&r_dongle->queue, args->coder->id);
-	// pthread_mutex_unlock(&r_dongle->mutix_dongle);
+	usb_dongle_t*	l_dongle;
+	usb_dongle_t*	r_dongle;
 
-	// pthread_mutex_lock(&l_dongle->mutix_dongle);
-	// push_back(&l_dongle->queue, args->coder->id);
-	// pthread_mutex_unlock(&l_dongle->mutix_dongle);
+	r_dongle = &args->data->dongles[args->coder->r_d_id];
+	l_dongle = &args->data->dongles[args->coder->l_d_id];
 
-	// the fix is that i need to get the position in the queue and then try to get dongles thats the inser
+	pthread_mutex_lock(&r_dongle->mutix_queue);
+	push_back(&r_dongle->queue, args->coder->id);
+	pthread_mutex_unlock(&r_dongle->mutix_queue);
 
-	if (args->coder->id % 2)
-	{
-		if (!fifo_r_left_d(args))
-			return (0);
-		printf("%lld %d has taken a dongle\n", ms_time() - start_time, args->coder->id);
-		
-		if (!fifo_r_right_d(args))
-			return (0);
-		printf("%lld %d has taken a dongle\n", ms_time() - start_time, args->coder->id);
-		return (1);
-	}
+	pthread_mutex_lock(&l_dongle->mutix_queue);
+	push_back(&l_dongle->queue, args->coder->id);
+	pthread_mutex_unlock(&l_dongle->mutix_queue);
 	
-	if (!fifo_r_right_d(args))
+	if (!fifo_rq_right_d(args))
 		return (0);
-	printf("%lld %d has taken a dongle\n", ms_time() - start_time, args->coder->id);
-	
-	if (!fifo_r_left_d(args))
+	if (!fifo_rq_left_d(args))
 		return (0);
-	printf("%lld %d has taken a dongle\n", ms_time() - start_time, args->coder->id);
 	
     return (1);
 }
@@ -169,24 +168,24 @@ int fifo_request_dongles(proccess_args_t* args, long long start_time)
 static void* coder_proccess(void* args_t)
 {
 	int		compiled_times;
-	long	start_time;
 
 	proccess_args_t* args = (proccess_args_t*)args_t;
 	compiled_times = 0;
-	start_time = ms_time();
+	args->start_time = ms_time();
 	while (1)
 	{
-		if (!fifo_request_dongles(args, start_time))
+		if (!fifo_request_dongles(args))
 			break;
 		pthread_mutex_lock(&args->coder->working_mutix);
 		args->coder->working = 1;
 		pthread_mutex_unlock(&args->coder->working_mutix);
 		
-		if (!compile(args, start_time))
+		if (!compile(args))
 			break;
-		if (!debug(args, start_time))
+		// coder sould set the dongles here after compileing 
+		if (!debug(args))
 			break;
-		if (!refactor(args, start_time))
+		if (!refactor(args))
 			break;
 
 		setback_dongles(args);
@@ -194,7 +193,7 @@ static void* coder_proccess(void* args_t)
 		compiled_times++; // stop the coder when he finish hes compiles
 		if (compiled_times >= args->data->number_of_compiles_required)
 		{
-			printf("the coder number %d is finished hes work now\n", args->coder->id);
+			// printf("the coder number %d is finished hes work now\n", args->coder->id);
 			break;
 		}
 		// after if coder finish so if he finish the working still  = 1
@@ -211,7 +210,7 @@ static void* coder_proccess(void* args_t)
 }
 
 
-void proccess(data_t* data)
+void proccess(data_t* data, long long start_time)
 {
 	int	i;
 
@@ -221,6 +220,7 @@ void proccess(data_t* data)
 		proccess_args_t* args = malloc(sizeof(proccess_args_t));
 		args->coder = &data->coders[i];
 		args->data = data;
+		args->start_time = start_time;
 
 		pthread_create(&data->coders[i].thread_id, NULL, coder_proccess, (void *)args);
 		i++;

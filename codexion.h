@@ -28,6 +28,7 @@ typedef struct usb_dongle_t
 	pthread_mutex_t	mutix_dongle;
 	pthread_cond_t	scheduler_cond;
 	long long		set_down_time;
+	pthread_mutex_t	mutix_queue;
 	t_queue			queue;
 }	usb_dongle_t;
 
@@ -61,24 +62,24 @@ typedef struct data_t
 	pthread_cond_t	stop_condation;
 	pthread_mutex_t	stop_mutix;
 	long long		start_time;
-
 }	data_t;
 
 typedef struct proccess_args_t
 {
 	data_t*		data;
 	coder_t*	coder;
+	long long	start_time;
 }	proccess_args_t;
 
 data_t*	parse_args(int argc, char **argv);
 
-void proccess(data_t* data);
+void proccess(data_t* data, long long start_time);
 
-int compile(proccess_args_t* args, long my_time);
+int compile(proccess_args_t* args);
 
-int debug(proccess_args_t* args, long my_time);
+int debug(proccess_args_t* args);
 
-int refactor(proccess_args_t* args, long my_time);
+int refactor(proccess_args_t* args);
 
 long long ms_time(void);
 

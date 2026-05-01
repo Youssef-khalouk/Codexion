@@ -14,14 +14,15 @@ void wait_time(struct timespec *ts, long ms)
     }
 }
 
-int compile(proccess_args_t* args, long start_time)
+int compile(proccess_args_t* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%lld %d is compiling\n", curent_time - start_time, args->coder->id);
+    printf("%-6lld %d is compiling\n", curent_time - args->start_time, args->coder->id);
+    fflush(stdout);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_compile);
@@ -39,14 +40,15 @@ int compile(proccess_args_t* args, long start_time)
     return (1);
 }
 
-int debug(proccess_args_t* args, long start_time)
+int debug(proccess_args_t* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%lld %d is debugging\n", curent_time - start_time, args->coder->id);
+    printf("%-6lld %d is debugging\n", curent_time - args->start_time, args->coder->id);
+    fflush(stdout);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_debug);
@@ -64,14 +66,15 @@ int debug(proccess_args_t* args, long start_time)
     return (1);
 }
 
-int refactor(proccess_args_t* args, long start_time)
+int refactor(proccess_args_t* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%lld %d is refactoring\n", curent_time - start_time, args->coder->id);
+    printf("%-6lld %d is refactoring\n", curent_time - args->start_time, args->coder->id);
+    fflush(stdout);
     
     struct timespec ts;
     wait_time(&ts, args->data->time_to_refactor);

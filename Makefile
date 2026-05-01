@@ -20,6 +20,9 @@ $(NAME): $(CODEXION_OBJS)
 run:
 	./codexion 5 1000 100 100 100 5 50 fifo
 
+run2:
+	clear
+	./codexion 10 2000 100 100 100 15 50 fifo
 clean:
 	rm -rf $(CODEXION_OBJS)
 

@@ -10,6 +10,7 @@ static void	free_data(data_t* data)
 	{
 		pthread_mutex_destroy(&data->coders[i].working_mutix);
 		pthread_mutex_destroy(&data->dongles[i].mutix_dongle);
+		pthread_mutex_destroy(&data->dongles[i].mutix_queue);
 		pthread_cond_destroy(&data->dongles[i].scheduler_cond);
 		i++;
 	}
@@ -53,10 +54,10 @@ static void	init_coders_and_dongles(data_t* data)
 		data->dongles[i].queue.size = 0;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_dongle, NULL);
+		pthread_mutex_init(&data->dongles[i].mutix_queue, NULL);
 		i++;
 	}
 }
-
 
 void* monitor(void* d)
 {
@@ -105,15 +106,18 @@ int	main(int argc, char **argv)
 {
 	data_t*	data;
 	pthread_t	monitor_thread;
+	long long	start_time;
 
+	start_time = ms_time();
 	data = parse_args(argc, argv);
 	init_coders_and_dongles(data);
 	if (data->error)
 		return (free_data(data), 1);
-	data->start_time = ms_time();
+	data->start_time = start_time;
 	pthread_create(&monitor_thread, NULL, monitor, (void*)data);
-	proccess(data);
+	proccess(data, start_time);
 	pthread_join(monitor_thread, NULL);
+
 
 	return (free_data(data), 0);
 }
