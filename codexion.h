@@ -20,6 +20,7 @@ typedef struct s_queue
 	int front;
 	int rear;
 	int size;
+	int push_later;
 } t_queue;
 
 typedef struct usb_dongle_t

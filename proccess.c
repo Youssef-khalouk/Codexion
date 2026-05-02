@@ -14,11 +14,15 @@ void print_queue(t_queue* queue)
 
 }
 
-void	push_back(t_queue* queue, int value)
+int	push_back(t_queue* queue, int value)
 {
-	queue->buffer[queue->rear] = value;
+	int	index;
+
+	index = queue->rear;
+	queue->buffer[index] = value;
 	queue->rear++;
 	queue->size++;
+	return (index);
 }
 
 int pop_front(t_queue* queue)
@@ -149,12 +153,66 @@ int fifo_request_dongles(proccess_args_t* args)
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
 
-	pthread_mutex_lock(&r_dongle->mutix_queue);
-	push_back(&r_dongle->queue, args->coder->id);
-	pthread_mutex_unlock(&r_dongle->mutix_queue);
+	if (r_dongle->id < l_dongle->id)
+	{
+		pthread_mutex_lock(&r_dongle->mutix_queue);
+		pthread_mutex_lock(&l_dongle->mutix_queue);
+	}
+	else
+	{
+		pthread_mutex_lock(&l_dongle->mutix_queue);
+		pthread_mutex_lock(&r_dongle->mutix_queue);
+	}
+	
+	if (r_dongle->queue.size >= 1 && l_dongle->queue.size >= 1)
+	{
+		push_back(&r_dongle->queue, args->coder->id);
+		push_back(&l_dongle->queue, args->coder->id);
+	}
+	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 0)
+	{
+		push_back(&r_dongle->queue, args->coder->id);
+		push_back(&l_dongle->queue, args->coder->id);
 
-	pthread_mutex_lock(&l_dongle->mutix_queue);
-	push_back(&l_dongle->queue, args->coder->id);
+		if (r_dongle->queue.push_later != -1)
+		{
+			push_back(&r_dongle->queue, r_dongle->queue.push_later);
+			r_dongle->queue.push_later = -1;
+		}
+		if (l_dongle->queue.push_later != -1)
+		{
+			push_back(&l_dongle->queue, l_dongle->queue.push_later);
+			l_dongle->queue.push_later = -1;
+		}
+	}
+	else if (r_dongle->queue.size == 1 && l_dongle->queue.size == 0)
+	{
+		push_back(&r_dongle->queue, args->coder->id);
+		if (l_dongle->queue.push_later == -1)
+			l_dongle->queue.push_later = args->coder->id;
+		else
+		{
+			push_back(&l_dongle->queue, args->coder->id);
+			push_back(&l_dongle->queue, l_dongle->queue.push_later);
+			l_dongle->queue.push_later = -1;
+			
+		}
+	}
+	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 1)
+	{
+		push_back(&l_dongle->queue, args->coder->id);
+		if (r_dongle->queue.push_later == -1)
+			r_dongle->queue.push_later = args->coder->id;
+		else
+		{
+			push_back(&r_dongle->queue, args->coder->id);
+			push_back(&r_dongle->queue, r_dongle->queue.push_later);
+			r_dongle->queue.push_later = -1;
+			
+		}
+	}
+	
+	pthread_mutex_unlock(&r_dongle->mutix_queue);
 	pthread_mutex_unlock(&l_dongle->mutix_queue);
 	
 	if (!fifo_rq_right_d(args))
@@ -183,12 +241,12 @@ static void* coder_proccess(void* args_t)
 		if (!compile(args))
 			break;
 		// coder sould set the dongles here after compileing 
+		setback_dongles(args);
 		if (!debug(args))
 			break;
 		if (!refactor(args))
 			break;
 
-		setback_dongles(args);
 		
 		compiled_times++; // stop the coder when he finish hes compiles
 		if (compiled_times >= args->data->number_of_compiles_required)
