@@ -22,7 +22,7 @@ run:
 
 run2:
 	clear
-	./codexion 10 2000 100 100 100 15 50 fifo
+	./codexion 15 1000 100 50 50 10 150 fifo
 clean:
 	rm -rf $(CODEXION_OBJS)
 

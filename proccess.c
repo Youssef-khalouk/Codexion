@@ -1,6 +1,6 @@
 #include "codexion.h"
 
-void print_queue(t_queue* queue)
+void print_queue(t_queue* queue, int push_later)
 {
 	int i = 0;
 	printf("========[ ");
@@ -10,7 +10,7 @@ void print_queue(t_queue* queue)
 		printf("%d, ", queue->buffer[i]);
 		i++;
 	}
-	printf(" ]===========\n");
+	printf(" ]======== the push_later = %d\n", push_later);
 }
 
 int	push_back(t_queue* queue, int value)
@@ -21,12 +21,10 @@ int	push_back(t_queue* queue, int value)
 	queue->buffer[index] = value;
 	queue->rear++;
 	queue->size++;
-	if (value == 4)
-		print_queue(queue);
 	return (index);
 }
 
-int pop_front(t_queue* queue, int coder_finished, pthread_cond_t* cond)
+int pop_front(t_queue* queue, int coder_finished)
 {
     int i;
     int value;
@@ -50,7 +48,7 @@ int pop_front(t_queue* queue, int coder_finished, pthread_cond_t* cond)
     {
         push_back(queue, queue->push_later);
         queue->push_later = -1;
-		pthread_cond_broadcast(cond);
+		// pthread_cond_broadcast(cond);
     }
 
     return (value);
@@ -83,9 +81,16 @@ void setback_dongles(proccess_args_t* args, int	coder_finished)
 	{
 		pthread_mutex_lock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
 		args->coder->right_dongle->set_down_time = ms_time();
-		pop_front(&args->data->dongles[args->coder->r_d_id].queue, coder_finished, &args->data->dongles[args->coder->r_d_id].scheduler_cond);
-		pthread_mutex_unlock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
+		if (args->coder->id == 0)
+		{
+			printf("0 is poping the coder id %d ------------------\n", args->data->dongles[args->coder->r_d_id].queue.buffer[0]);
+		}
+		if (args->data->dongles[args->coder->r_d_id].queue.buffer[0] == args->coder->id)
+			pop_front(&args->data->dongles[args->coder->r_d_id].queue, coder_finished);
+		else
+			args->data->dongles[args->coder->r_d_id].queue.size--;
 		pthread_cond_broadcast(&args->data->dongles[args->coder->r_d_id].scheduler_cond);
+		pthread_mutex_unlock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
 		pthread_mutex_unlock(&args->coder->right_dongle->mutix_dongle);
 	}
 	args->coder->right_dongle = NULL;
@@ -94,9 +99,16 @@ void setback_dongles(proccess_args_t* args, int	coder_finished)
 	{
 		pthread_mutex_lock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		args->coder->left_dongle->set_down_time = ms_time();
-		pop_front(&args->data->dongles[args->coder->l_d_id].queue, coder_finished, &args->data->dongles[args->coder->l_d_id].scheduler_cond);
-		pthread_mutex_unlock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
+		if (args->coder->id == 4)
+		{
+			printf("4 is poping hes id from queue ??????????\n");
+		}
+		if (args->data->dongles[args->coder->l_d_id].queue.buffer[0] == args->coder->id)
+			pop_front(&args->data->dongles[args->coder->l_d_id].queue, coder_finished);
+		else
+			args->data->dongles[args->coder->l_d_id].queue.size--;
 		pthread_cond_broadcast(&args->data->dongles[args->coder->l_d_id].scheduler_cond);
+		pthread_mutex_unlock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		pthread_mutex_unlock(&args->coder->left_dongle->mutix_dongle);
 	}
 	args->coder->left_dongle = NULL;
@@ -125,7 +137,6 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
         usleep(2000);
     }
 }
-
 
 
 int	fifo_rq_right_d(proccess_args_t* args)
@@ -182,8 +193,8 @@ int	fifo_rq_left_d(proccess_args_t* args)
 
 int fifo_request_dongles(proccess_args_t* args)
 {
-	usb_dongle_t*	l_dongle;
 	usb_dongle_t*	r_dongle;
+	usb_dongle_t*	l_dongle;
 
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
@@ -198,13 +209,24 @@ int fifo_request_dongles(proccess_args_t* args)
 		pthread_mutex_lock(&l_dongle->mutix_queue);
 		pthread_mutex_lock(&r_dongle->mutix_queue);
 	}
+
+	if (args->coder->id == 4)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&l_dongle->queue, l_dongle->queue.push_later);
+	}
+	if (args->coder->id == 0)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&r_dongle->queue, r_dongle->queue.push_later);
+	}
 	
 	if (r_dongle->queue.size >= 1 && l_dongle->queue.size >= 1)
 	{
 		push_back(&r_dongle->queue, args->coder->id);
 		push_back(&l_dongle->queue, args->coder->id);
 	}
-	else if (r_dongle->queue.size == 0 == l_dongle->queue.size == 0)
+	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 0)
 	{
 		push_back(&r_dongle->queue, args->coder->id);
 		push_back(&l_dongle->queue, args->coder->id);
@@ -248,20 +270,30 @@ int fifo_request_dongles(proccess_args_t* args)
 			r_dongle->queue.push_later = -1;
 		}
 	}
+	if (args->coder->id == 4)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&l_dongle->queue, l_dongle->queue.push_later);
+	}
+	if (args->coder->id == 0)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&r_dongle->queue, r_dongle->queue.push_later);
+	}
 
-	// if (r_dongle->id < l_dongle->id)
-	// {
-	// 	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	// 	pthread_mutex_unlock(&l_dongle->mutix_queue);
-	// }
-	// else
-	// {
-	// 	pthread_mutex_unlock(&l_dongle->mutix_queue);
-	// 	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	// }
+	if (r_dongle->id < l_dongle->id)
+	{
+		pthread_mutex_unlock(&r_dongle->mutix_queue);
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+	}
+	else
+	{
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		pthread_mutex_unlock(&r_dongle->mutix_queue);
+	}
 	
-	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	pthread_mutex_unlock(&l_dongle->mutix_queue);
+	// pthread_mutex_unlock(&r_dongle->mutix_queue);
+	// pthread_mutex_unlock(&l_dongle->mutix_queue);
 	
 	if (!fifo_rq_right_d(args))
 		return (0);
