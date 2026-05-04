@@ -18,7 +18,7 @@ $(NAME): $(CODEXION_OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run:
-	./codexion 5 1000 100 100 100 5 50 fifo
+	./codexion 5 1000 100 50 50 5 150 fifo
 
 run2:
 	clear

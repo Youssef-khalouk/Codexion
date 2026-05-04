@@ -21,6 +21,7 @@ typedef struct s_queue
 	int rear;
 	int size;
 	int push_later;
+	int	use_push_later;
 } t_queue;
 
 typedef struct usb_dongle_t
@@ -43,6 +44,7 @@ typedef struct coder_t
 	usb_dongle_t* 	left_dongle;
 	pthread_t		thread_id;
 	int				working;
+	int				finish;
 	pthread_mutex_t	working_mutix;
 }	coder_t;
 

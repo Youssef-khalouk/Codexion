@@ -16,8 +16,6 @@ static void	free_data(data_t* data)
 	}
 	pthread_mutex_destroy(&data->stop_mutix);
 	pthread_cond_destroy(&data->stop_condation);
-	// pthread_mutex_destroy(&data->queue_mutex);
-	// pthread_cond_destroy(&data->queue_cond);
 	free(data->coders);
 	free(data->dongles);
 	free(data);
@@ -30,13 +28,9 @@ static void	init_coders_and_dongles(data_t* data)
 	i = 0;
 	data->coders = malloc(sizeof(coder_t) * data->number_of_coders);
 	data->dongles = malloc(sizeof(usb_dongle_t) * data->number_of_coders);
-
 	pthread_mutex_init(&data->stop_mutix, NULL);
 	pthread_cond_init(&data->stop_condation, NULL);
-	// pthread_mutex_init(&data->queue_mutex, NULL);
-	// pthread_cond_init(&data->queue_cond, NULL);
-	// data->serving_ticket = 0;
-	// data->next_ticket = 0;
+	data->stop = 0;
 	while (i < data->number_of_coders)
 	{
 		data->coders[i].id = i;
@@ -44,6 +38,7 @@ static void	init_coders_and_dongles(data_t* data)
 		data->coders[i].right_dongle = NULL;
 		data->coders[i].left_dongle = NULL;
 		data->coders[i].working = 0;
+		data->coders[i].finish = 0;
 		data->coders[i].r_d_id = i;
 		data->coders[i].l_d_id = (i + 1) % data->number_of_coders;
 		pthread_mutex_init(&data->coders[i].working_mutix, NULL);
@@ -53,10 +48,24 @@ static void	init_coders_and_dongles(data_t* data)
 		data->dongles[i].queue.rear = 0;
 		data->dongles[i].queue.size = 0;
 		data->dongles[i].queue.push_later = -1;
-
+		data->dongles[i].queue.use_push_later = 1;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_dongle, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_queue, NULL);
+		i++;
+	}
+}
+
+void	broadcast_all_coders(data_t* data)
+{
+	int	i;
+
+	i = 0;
+	while (i < data->number_of_coders)
+	{
+		pthread_mutex_lock(&data->dongles[i].mutix_queue);
+		pthread_cond_broadcast(&data->dongles[i].scheduler_cond);
+		pthread_mutex_unlock(&data->dongles[i].mutix_queue);
 		i++;
 	}
 }
@@ -66,6 +75,7 @@ void* monitor(void* d)
 	data_t*	data;
 	int		index;
 	int		all_done;
+	long long	last_proccess_time;
 
 	data = d;
 	index = 0;
@@ -81,26 +91,30 @@ void* monitor(void* d)
 			all_done = 1;
 		}
 		pthread_mutex_lock(&data->coders[index].working_mutix);
+		if (!data->coders[index].finish)
+			all_done = 0;
 		if (data->coders[index].working)
 		{	
 			pthread_mutex_unlock(&data->coders[index].working_mutix);
 			index++;
 			continue;
 		}
-		all_done = 0;
+		last_proccess_time = data->coders[index].last_proccess_time;
 		pthread_mutex_unlock(&data->coders[index].working_mutix);
-		if ((ms_time() - data->coders[index].last_proccess_time) >= data->time_to_burnout)
+
+		if ((ms_time() - last_proccess_time) >= data->time_to_burnout)
 		{
 			pthread_mutex_lock(&data->stop_mutix);
 			data->stop = 1;
 			pthread_cond_broadcast(&data->stop_condation);
 			pthread_mutex_unlock(&data->stop_mutix);
+			broadcast_all_coders(data);
 			printf("%lld %d burned out\n", ms_time() - data->start_time, data->coders[index].id);
-			break;
+			return (NULL);
 		}
 		index++;
 	}
-	return NULL;
+	return (NULL);
 }
 
 
@@ -119,7 +133,6 @@ int	main(int argc, char **argv)
 	pthread_create(&monitor_thread, NULL, monitor, (void*)data);
 	proccess(data, start_time);
 	pthread_join(monitor_thread, NULL);
-
 
 	return (free_data(data), 0);
 }

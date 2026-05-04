@@ -3,15 +3,14 @@
 void print_queue(t_queue* queue)
 {
 	int i = 0;
-	printf("[ ");
+	printf("========[ ");
 	
 	while (i < queue->size)
 	{
 		printf("%d, ", queue->buffer[i]);
 		i++;
 	}
-	printf(" ]");
-
+	printf(" ]===========\n");
 }
 
 int	push_back(t_queue* queue, int value)
@@ -22,26 +21,39 @@ int	push_back(t_queue* queue, int value)
 	queue->buffer[index] = value;
 	queue->rear++;
 	queue->size++;
+	if (value == 4)
+		print_queue(queue);
 	return (index);
 }
 
-int pop_front(t_queue* queue)
+int pop_front(t_queue* queue, int coder_finished, pthread_cond_t* cond)
 {
-	int	i;
-	int	value;
+    int i;
+    int value;
 
-	if (queue->size == 0)
-		return (-1);
-	i = 0;
-	value = queue->buffer[queue->front];
-	while (i < queue->size - 1)
-	{
-		queue->buffer[i] = queue->buffer[i+1];
-		i++;
-	}
-	queue->size--;
-	queue->rear--;
-	return (value);
+    if (queue->size == 0)
+        return (-1);
+    i = 0;
+    value = queue->buffer[queue->front];
+    while (i < queue->size - 1)
+    {
+        queue->buffer[i] = queue->buffer[i+1];
+        i++;
+    }
+    queue->size--;
+    queue->rear--;
+
+    if (coder_finished)
+        {queue->use_push_later = 0;}
+
+    if (!queue->use_push_later && queue->push_later != -1)
+    {
+        push_back(queue, queue->push_later);
+        queue->push_later = -1;
+		pthread_cond_broadcast(cond);
+    }
+
+    return (value);
 }
 
 long long ms_time(void)
@@ -53,12 +65,26 @@ long long ms_time(void)
     return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
 }
 
-void setback_dongles(proccess_args_t* args)
+int simulation_stoped(proccess_args_t * args)
+{
+	pthread_mutex_lock(&args->data->stop_mutix);
+	if (args->data->stop)
+	{
+		pthread_mutex_unlock(&args->data->stop_mutix);
+		return (1);
+	}
+	pthread_mutex_unlock(&args->data->stop_mutix);
+	return (0);
+}
+
+void setback_dongles(proccess_args_t* args, int	coder_finished)
 {
 	if (args->coder->right_dongle)
 	{
+		pthread_mutex_lock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
 		args->coder->right_dongle->set_down_time = ms_time();
-		pop_front(&args->data->dongles[args->coder->r_d_id].queue);
+		pop_front(&args->data->dongles[args->coder->r_d_id].queue, coder_finished, &args->data->dongles[args->coder->r_d_id].scheduler_cond);
+		pthread_mutex_unlock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
 		pthread_cond_broadcast(&args->data->dongles[args->coder->r_d_id].scheduler_cond);
 		pthread_mutex_unlock(&args->coder->right_dongle->mutix_dongle);
 	}
@@ -66,8 +92,10 @@ void setback_dongles(proccess_args_t* args)
 
 	if (args->coder->left_dongle)
 	{
+		pthread_mutex_lock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		args->coder->left_dongle->set_down_time = ms_time();
-		pop_front(&args->data->dongles[args->coder->l_d_id].queue);
+		pop_front(&args->data->dongles[args->coder->l_d_id].queue, coder_finished, &args->data->dongles[args->coder->l_d_id].scheduler_cond);
+		pthread_mutex_unlock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		pthread_cond_broadcast(&args->data->dongles[args->coder->l_d_id].scheduler_cond);
 		pthread_mutex_unlock(&args->coder->left_dongle->mutix_dongle);
 	}
@@ -81,13 +109,8 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
 
     while (1)
     {
-		pthread_mutex_lock(&args->data->stop_mutix);
-		if (args->data->stop)
-		{
-			pthread_mutex_unlock(&args->data->stop_mutix);
+		if (simulation_stoped(args))
 			return (0);
-		}
-		pthread_mutex_unlock(&args->data->stop_mutix);
         pthread_mutex_lock(&dongle->mutix_dongle);
         elapsed = ms_time() - dongle->set_down_time;
         if (elapsed >= args->data->dongle_cooldown)
@@ -103,6 +126,8 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
     }
 }
 
+
+
 int	fifo_rq_right_d(proccess_args_t* args)
 {
 	usb_dongle_t*	r_dongle;
@@ -111,6 +136,11 @@ int	fifo_rq_right_d(proccess_args_t* args)
 	pthread_mutex_lock(&r_dongle->mutix_queue);
 	while (1)
 	{
+		if (simulation_stoped(args))
+		{
+			pthread_mutex_unlock(&r_dongle->mutix_queue);
+			return (0);
+		}
 		if (r_dongle->queue.buffer[0] == args->coder->id)
 			break;
 		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_queue);
@@ -119,7 +149,7 @@ int	fifo_rq_right_d(proccess_args_t* args)
 
 	if (!take_dongle_when_ready(args, r_dongle, 'r'))
 		return (0);
-	printf("%-6lld %d has taken right dongle\n", ms_time() - args->start_time, args->coder->id);
+	printf("%-6lld %d has taken right dongle %d\n", ms_time() - args->start_time, args->coder->id, r_dongle->id);
 	fflush(stdout);
 	return (1);
 }
@@ -132,6 +162,11 @@ int	fifo_rq_left_d(proccess_args_t* args)
 	pthread_mutex_lock(&l_dongle->mutix_queue);
 	while (1)
 	{
+		if (simulation_stoped(args))
+		{
+			pthread_mutex_unlock(&l_dongle->mutix_queue);
+			return (0);
+		}
 		if (l_dongle->queue.buffer[0] == args->coder->id)
 			break;
 		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_queue);
@@ -140,7 +175,7 @@ int	fifo_rq_left_d(proccess_args_t* args)
 
 	if (!take_dongle_when_ready(args, l_dongle, 'l'))
 		return (0);
-	printf("%-6lld %d has taken left dongle\n", ms_time() - args->start_time, args->coder->id);
+	printf("%-6lld %d has taken left dongle %d\n", ms_time() - args->start_time, args->coder->id, l_dongle->id);
 	fflush(stdout);
 	return (1);
 }
@@ -169,7 +204,7 @@ int fifo_request_dongles(proccess_args_t* args)
 		push_back(&r_dongle->queue, args->coder->id);
 		push_back(&l_dongle->queue, args->coder->id);
 	}
-	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 0)
+	else if (r_dongle->queue.size == 0 == l_dongle->queue.size == 0)
 	{
 		push_back(&r_dongle->queue, args->coder->id);
 		push_back(&l_dongle->queue, args->coder->id);
@@ -188,29 +223,42 @@ int fifo_request_dongles(proccess_args_t* args)
 	else if (r_dongle->queue.size == 1 && l_dongle->queue.size == 0)
 	{
 		push_back(&r_dongle->queue, args->coder->id);
-		if (l_dongle->queue.push_later == -1)
+		if (!l_dongle->queue.use_push_later)
+			push_back(&l_dongle->queue, args->coder->id);
+		else if (l_dongle->queue.push_later == -1)
 			l_dongle->queue.push_later = args->coder->id;
 		else
 		{
 			push_back(&l_dongle->queue, args->coder->id);
 			push_back(&l_dongle->queue, l_dongle->queue.push_later);
 			l_dongle->queue.push_later = -1;
-			
 		}
 	}
 	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 1)
 	{
 		push_back(&l_dongle->queue, args->coder->id);
-		if (r_dongle->queue.push_later == -1)
+		if (!r_dongle->queue.use_push_later)
+			push_back(&r_dongle->queue, args->coder->id);
+		else if (r_dongle->queue.push_later == -1)
 			r_dongle->queue.push_later = args->coder->id;
 		else
 		{
 			push_back(&r_dongle->queue, args->coder->id);
 			push_back(&r_dongle->queue, r_dongle->queue.push_later);
 			r_dongle->queue.push_later = -1;
-			
 		}
 	}
+
+	// if (r_dongle->id < l_dongle->id)
+	// {
+	// 	pthread_mutex_unlock(&r_dongle->mutix_queue);
+	// 	pthread_mutex_unlock(&l_dongle->mutix_queue);
+	// }
+	// else
+	// {
+	// 	pthread_mutex_unlock(&l_dongle->mutix_queue);
+	// 	pthread_mutex_unlock(&r_dongle->mutix_queue);
+	// }
 	
 	pthread_mutex_unlock(&r_dongle->mutix_queue);
 	pthread_mutex_unlock(&l_dongle->mutix_queue);
@@ -230,7 +278,7 @@ static void* coder_proccess(void* args_t)
 	proccess_args_t* args = (proccess_args_t*)args_t;
 	compiled_times = 0;
 	args->start_time = ms_time();
-	while (1)
+	while (compiled_times < args->data->number_of_compiles_required)
 	{
 		if (!fifo_request_dongles(args))
 			break;
@@ -240,31 +288,28 @@ static void* coder_proccess(void* args_t)
 		
 		if (!compile(args))
 			break;
-		// coder sould set the dongles here after compileing 
-		setback_dongles(args);
+
+		if (++compiled_times >= args->data->number_of_compiles_required)
+			setback_dongles(args, 1);
+		else
+			setback_dongles(args, 0);
+
 		if (!debug(args))
 			break;
 		if (!refactor(args))
 			break;
-
 		
-		compiled_times++; // stop the coder when he finish hes compiles
-		if (compiled_times >= args->data->number_of_compiles_required)
-		{
-			// printf("the coder number %d is finished hes work now\n", args->coder->id);
-			break;
-		}
-		// after if coder finish so if he finish the working still  = 1
-		// so that the monitor skeep it 
-		args->coder->last_proccess_time = ms_time();
 		pthread_mutex_lock(&args->coder->working_mutix);
+		args->coder->last_proccess_time = ms_time();
 		args->coder->working = 0;
 		pthread_mutex_unlock(&args->coder->working_mutix);
 	}
-	setback_dongles(args);
+	setback_dongles(args, 1);
+	pthread_mutex_lock(&args->coder->working_mutix);
+	args->coder->finish = 1;
+	pthread_mutex_unlock(&args->coder->working_mutix);
 	free(args_t);
 	return (NULL);
-
 }
 
 
