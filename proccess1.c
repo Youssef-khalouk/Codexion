@@ -226,7 +226,7 @@ int fifo_request_dongles(proccess_args_t* args)
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
 
-	if (r_dongle->id % 2)
+	if (r_dongle->id < l_dongle->id)
 	{
 		pthread_mutex_lock(&r_dongle->mutix_queue);
 		pthread_mutex_lock(&l_dongle->mutix_queue);
@@ -235,6 +235,17 @@ int fifo_request_dongles(proccess_args_t* args)
 	{
 		pthread_mutex_lock(&l_dongle->mutix_queue);
 		pthread_mutex_lock(&r_dongle->mutix_queue);
+	}
+
+	if (args->coder->id == 4)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&l_dongle->queue, l_dongle->queue.push_later);
+	}
+	if (args->coder->id == 0)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&r_dongle->queue, r_dongle->queue.push_later);
 	}
 	
 	if (r_dongle->queue.size >= 1 && l_dongle->queue.size >= 1)
@@ -288,11 +299,30 @@ int fifo_request_dongles(proccess_args_t* args)
 			r_dongle->queue.push_later = -1;
 		}
 	}
+	if (args->coder->id == 4)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&l_dongle->queue, l_dongle->queue.push_later);
+	}
+	if (args->coder->id == 0)
+	{
+		printf("coder ---------------> %d\n", args->coder->id);
+		print_queue(&r_dongle->queue, r_dongle->queue.push_later);
+	}
 
-	if (r_dongle->id % 2)
+	if (r_dongle->id < l_dongle->id)
 	{
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
+	}
+	else
+	{
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		pthread_mutex_unlock(&r_dongle->mutix_queue);
+	}
+	
+	if (r_dongle->id < l_dongle->id)
+	{
 		if (!fifo_rq_right_d(args))
 			return 0;
 		if (!fifo_rq_left_d(args))
@@ -300,8 +330,6 @@ int fifo_request_dongles(proccess_args_t* args)
 	}
 	else
 	{
-		pthread_mutex_unlock(&l_dongle->mutix_queue);
-		pthread_mutex_unlock(&r_dongle->mutix_queue);
 		if (!fifo_rq_left_d(args))
 			return 0;
 		if (!fifo_rq_right_d(args))
@@ -310,77 +338,6 @@ int fifo_request_dongles(proccess_args_t* args)
 	
     return (1);
 }
-
-
-// void heapify_deadline(t_heap* heap_queue)
-// {
-// 	int	i;
-
-// 	if (heap_queue->size < 2)
-// 		return;
-// 	i = 0;
-// 	while (i < heap_queue->size-)
-	
-// }
-
-int	edf_rq_right_d(proccess_args_t* args)
-{
-	usb_dongle_t*	r_dongle;
-
-	r_dongle = &args->data->dongles[args->coder->r_d_id];
-	pthread_mutex_lock(&r_dongle->mutix_queue);
-	while (1)
-	{
-		if (simulation_stoped(args))
-		{
-			pthread_mutex_unlock(&r_dongle->mutix_queue);
-			return (0);
-		}
-		if (r_dongle->heap_queue.buffer[0] == args->coder->id)
-			break;
-
-		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_queue);
-	}
-
-	if (!take_dongle_when_ready(args, r_dongle, 'r'))
-	{
-		pthread_mutex_unlock(&r_dongle->mutix_queue);
-		return (0);
-	}
-	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	printf("%-6lld %d has taken right dongle %d\n", ms_time() - args->start_time, args->coder->id, r_dongle->id);
-	fflush(stdout);
-	return (1);
-}
-
-
-int edf_request_dongles(proccess_args_t* args)
-{
-	usb_dongle_t*	r_dongle;
-	usb_dongle_t*	l_dongle;
-
-	r_dongle = &args->data->dongles[args->coder->r_d_id];
-	l_dongle = &args->data->dongles[args->coder->l_d_id];
-
-
-	pthread_mutex_lock(&r_dongle->mutix_queue);
-	pthread_mutex_lock(&l_dongle->mutix_queue);
-	
-	push_back(&r_dongle->heap_queue, args->coder->id);
-	push_back(&l_dongle->heap_queue, args->coder->id);
-
-	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	pthread_mutex_unlock(&l_dongle->mutix_queue);
-
-	if (!edf_rq_right_d(args))
-		return 0;
-	if (!fifo_rq_left_d(args))
-		return 0;
-
-	
-    return (1);
-}
-
 
 static void* coder_proccess(void* args_t)
 {
