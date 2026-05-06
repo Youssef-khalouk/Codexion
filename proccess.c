@@ -1,65 +1,17 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   proccess.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/06 17:09:39 by ykhalouk          #+#    #+#             */
+/*   Updated: 2026/05/06 17:09:40 by ykhalouk         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
-
-int queue_has(t_queue *q, int id)
-{
-    int i = 0;
-
-    while (i < q->size)
-    {
-        if (q->buffer[i] == id)
-            return 1;
-        i++;
-    }
-    return 0;
-}
-
-int	push_back(t_queue* queue, int value)
-{
-	int	index;
-
-	index = queue->rear;
-	queue->buffer[index] = value;
-	queue->rear++;
-	queue->size++;
-	return (index);
-}
-
-void push_back_if_missing(t_queue *q, int id)
-{
-    if (!queue_has(q, id) && q->push_later != id)
-        push_back(q, id);
-}
-
-int pop_front(t_queue* queue, int coder_finished)
-{
-    int i;
-    int value;
-
-    if (queue->size == 0)
-        return (-1);
-    i = 0;
-    value = queue->buffer[queue->front];
-    while (i < queue->size - 1)
-    {
-        queue->buffer[i] = queue->buffer[i+1];
-        i++;
-    }
-    queue->size--;
-    queue->rear--;
-
-    if (coder_finished)
-        {queue->use_push_later = 0;}
-
-    if (!queue->use_push_later && queue->push_later != -1)
-    {
-        push_back(queue, queue->push_later);
-        queue->push_later = -1;
-		// pthread_cond_broadcast(cond);
-    }
-
-    return (value);
-}
 
 long long ms_time(void)
 {
@@ -89,11 +41,11 @@ void setback_dongles(proccess_args_t* args, int	coder_finished)
 		pthread_mutex_lock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
 		args->coder->right_dongle->set_down_time = ms_time();
 		
-		if (args->data->dongles[args->coder->r_d_id].queue.owner_id == args->coder->id)
-		{
+		// if (args->data->dongles[args->coder->r_d_id].queue.owner_id == args->coder->id)
+		// {
 			pop_front(&args->data->dongles[args->coder->r_d_id].queue, coder_finished);
-			args->data->dongles[args->coder->r_d_id].queue.owner_id = -1;
-		}
+			// args->data->dongles[args->coder->r_d_id].queue.owner_id = -1;
+		// }
 		
 		pthread_cond_broadcast(&args->data->dongles[args->coder->r_d_id].scheduler_cond);
 		pthread_mutex_unlock(&args->data->dongles[args->coder->r_d_id].mutix_queue);
@@ -105,11 +57,11 @@ void setback_dongles(proccess_args_t* args, int	coder_finished)
 	{
 		pthread_mutex_lock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		args->coder->left_dongle->set_down_time = ms_time();
-		if (args->data->dongles[args->coder->l_d_id].queue.owner_id == args->coder->id)
-		{
+		// if (args->data->dongles[args->coder->l_d_id].queue.owner_id == args->coder->id)
+		// {
 			pop_front(&args->data->dongles[args->coder->l_d_id].queue, coder_finished);
-			args->data->dongles[args->coder->l_d_id].queue.owner_id = -1;
-		}
+			// args->data->dongles[args->coder->l_d_id].queue.owner_id = -1;
+		// }
 		pthread_cond_broadcast(&args->data->dongles[args->coder->l_d_id].scheduler_cond);
 		pthread_mutex_unlock(&args->data->dongles[args->coder->l_d_id].mutix_queue);
 		pthread_mutex_unlock(&args->coder->left_dongle->mutix_dongle);
@@ -117,7 +69,6 @@ void setback_dongles(proccess_args_t* args, int	coder_finished)
 	args->coder->left_dongle = NULL;
 }
 
-// wait tell its cooldown and take it
 int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l)
 {
 	long long	elapsed;
@@ -134,6 +85,7 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
 				args->coder->right_dongle = dongle;
 			else if (r_l == 'l')
 				args->coder->left_dongle = dongle;
+			printf("%-6lld %d has taken a dongle\n", ms_time() - args->start_time, args->coder->id);
             return 1;
 		}
         pthread_mutex_unlock(&dongle->mutix_dongle);
@@ -154,22 +106,16 @@ int	fifo_rq_right_d(proccess_args_t* args)
 			pthread_mutex_unlock(&r_dongle->mutix_queue);
 			return (0);
 		}
-		if (r_dongle->queue.buffer[0] == args->coder->id && r_dongle->queue.owner_id == -1)
-		{
-			r_dongle->queue.owner_id = args->coder->id;
+		if (r_dongle->queue.buffer[0] == args->coder->id)
 			break;
-		}
 		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_queue);
 	}
-
 	if (!take_dongle_when_ready(args, r_dongle, 'r'))
 	{
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
 		return (0);
 	}
 	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	printf("%-6lld %d has taken right dongle %d\n", ms_time() - args->start_time, args->coder->id, r_dongle->id);
-	fflush(stdout);
 	return (1);
 }
 
@@ -186,29 +132,44 @@ int	fifo_rq_left_d(proccess_args_t* args)
 			pthread_mutex_unlock(&l_dongle->mutix_queue);
 			return (0);
 		}
-		if (l_dongle->queue.buffer[0] == args->coder->id && l_dongle->queue.owner_id == -1)
-		{
-			l_dongle->queue.owner_id = args->coder->id;
+		if (l_dongle->queue.buffer[0] == args->coder->id)
 			break;
-		}
 		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_queue);
 	}
-
 	if (!take_dongle_when_ready(args, l_dongle, 'l'))
 	{
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
 		return (0);
 	}
 	pthread_mutex_unlock(&l_dongle->mutix_queue);
-	printf("%-6lld %d has taken left dongle %d\n", ms_time() - args->start_time, args->coder->id, l_dongle->id);
-	fflush(stdout);
 	return (1);
+}
+
+int	just_one(proccess_args_t* args)
+{
+
+	take_dongle_when_ready(args, &args->data->dongles[0], 'r');
+	while (1)
+    {
+        pthread_mutex_lock(&args->data->stop_mutix);
+		if (args->data->stop)
+		{
+			setback_dongles(args, 0);
+			break;
+		}
+        pthread_mutex_unlock(&args->data->stop_mutix);
+		usleep(2000);
+    }
+	return (0);
 }
 
 int fifo_request_dongles(proccess_args_t* args)
 {
 	usb_dongle_t*	r_dongle;
 	usb_dongle_t*	l_dongle;
+
+	if (args->data->number_of_coders == 1)
+		return (just_one(args));
 
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
@@ -299,25 +260,6 @@ int fifo_request_dongles(proccess_args_t* args)
 }
 
 
-void heap_deadline(t_queue* heap_queue, proccess_args_t* args)
-{
-	coder_t*	coder1;
-	coder_t*	coder2;
-	int			id;
-
-	if (heap_queue->size < 2)
-		return;
-	coder1 = &args->data->coders[heap_queue->buffer[0]];
-	coder2 = &args->data->coders[heap_queue->buffer[1]];
-	
-	if (coder1->last_proccess_time > coder2->last_proccess_time)
-	{
-		id = heap_queue->buffer[0];
-		heap_queue->buffer[0] = heap_queue->buffer[1];
-		heap_queue->buffer[1] = id;
-	}
-}
-
 int	edf_rq_right_d(proccess_args_t* args)
 {
 	usb_dongle_t*	r_dongle;
@@ -343,8 +285,6 @@ int	edf_rq_right_d(proccess_args_t* args)
 		return (0);
 	}
 	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	printf("%-6lld %d has taken right dongle %d\n", ms_time() - args->start_time, args->coder->id, r_dongle->id);
-	fflush(stdout);
 	return (1);
 }
 
@@ -366,15 +306,12 @@ int	edf_rq_left_d(proccess_args_t* args)
 			break;
 		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_queue);
 	}
-
 	if (!take_dongle_when_ready(args, l_dongle, 'l'))
 	{
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
 		return (0);
 	}
 	pthread_mutex_unlock(&l_dongle->mutix_queue);
-	printf("%-6lld %d has taken left dongle %d\n", ms_time() - args->start_time, args->coder->id, l_dongle->id);
-	fflush(stdout);
 	return (1);
 }
 
@@ -384,19 +321,22 @@ int edf_request_dongles(proccess_args_t* args)
 	usb_dongle_t*	r_dongle;
 	usb_dongle_t*	l_dongle;
 
+	if (args->data->number_of_coders == 1)
+		return (just_one(args));
+
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
 
 	if (r_dongle->id % 2)
 	{
 		pthread_mutex_lock(&r_dongle->mutix_queue);
-		usleep(1000);
+		usleep(2000);
 		pthread_mutex_lock(&l_dongle->mutix_queue);
 	}
 	else
 	{
 		pthread_mutex_lock(&l_dongle->mutix_queue);
-		usleep(1000);
+		usleep(2000);
 		pthread_mutex_lock(&r_dongle->mutix_queue);
 	}
 	
@@ -406,6 +346,7 @@ int edf_request_dongles(proccess_args_t* args)
 	if (r_dongle->id % 2)
 	{
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
+		usleep(2000);
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
 		if (!fifo_rq_right_d(args))
 			return 0;
@@ -415,6 +356,7 @@ int edf_request_dongles(proccess_args_t* args)
 	else
 	{
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		usleep(2000);
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
 		if (!fifo_rq_left_d(args))
 			return 0;
@@ -434,10 +376,16 @@ static void* coder_proccess(void* args_t)
 	args->start_time = ms_time();
 	while (compiled_times < args->data->number_of_compiles_required)
 	{
-		// if (!fifo_request_dongles(args))
-		// 	break;
-		if (!edf_request_dongles(args))
-			break;
+		if (strcmp(args->data->scheduler, "fifo") == 0)
+		{
+			if (!fifo_request_dongles(args))
+				break;
+		}
+		else
+		{
+			if (!edf_request_dongles(args))
+				break;
+		}
 		pthread_mutex_lock(&args->coder->working_mutix);
 		args->coder->working = 1;
 		pthread_mutex_unlock(&args->coder->working_mutix);

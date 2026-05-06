@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   codexion.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/06 17:09:43 by ykhalouk          #+#    #+#             */
+/*   Updated: 2026/05/06 17:09:44 by ykhalouk         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 
 #include "codexion.h"
 
@@ -50,9 +62,6 @@ static void	init_coders_and_dongles(data_t* data)
 		data->dongles[i].queue.owner_id = -1;
 		data->dongles[i].queue.push_later = -1;
 		data->dongles[i].queue.use_push_later = 1;
-		// data->dongles[i].heap_queue.front = 0;
-		// data->dongles[i].heap_queue.rear = 0;
-		// data->dongles[i].heap_queue.size = 0;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_dongle, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_queue, NULL);
@@ -98,7 +107,7 @@ void* monitor(void* d)
 		if (!data->coders[index].finish)
 			all_done = 0;
 		if (data->coders[index].working)
-		{	
+		{
 			pthread_mutex_unlock(&data->coders[index].working_mutix);
 			index++;
 			continue;
@@ -118,7 +127,6 @@ void* monitor(void* d)
 		}
 		index++;
 	}
-	return (NULL);
 }
 
 
