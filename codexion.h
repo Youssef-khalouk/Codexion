@@ -44,7 +44,7 @@ typedef struct usb_dongle_t
 	long long		set_down_time;
 	pthread_mutex_t	mutix_queue;
 	t_queue			queue;
-	t_heap			heap_queue;
+	// t_heap			heap_queue;
 }	usb_dongle_t;
 
 typedef struct coder_t

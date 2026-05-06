@@ -50,9 +50,9 @@ static void	init_coders_and_dongles(data_t* data)
 		data->dongles[i].queue.owner_id = -1;
 		data->dongles[i].queue.push_later = -1;
 		data->dongles[i].queue.use_push_later = 1;
-		data->dongles[i].heap_queue.front = 0;
-		data->dongles[i].heap_queue.rear = 0;
-		data->dongles[i].heap_queue.size = 0;
+		// data->dongles[i].heap_queue.front = 0;
+		// data->dongles[i].heap_queue.rear = 0;
+		// data->dongles[i].heap_queue.size = 0;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_dongle, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_queue, NULL);

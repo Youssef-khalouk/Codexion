@@ -1,17 +1,5 @@
 #include "codexion.h"
 
-void print_queue(t_queue* queue, int push_later)
-{
-	int i = 0;
-	printf("========[ ");
-	
-	while (i < queue->size)
-	{
-		printf("%d, ", queue->buffer[i]);
-		i++;
-	}
-	printf(" ]======== the push_later = %d\n", push_later);
-}
 
 int queue_has(t_queue *q, int id)
 {
@@ -152,7 +140,6 @@ int take_dongle_when_ready(proccess_args_t* args, usb_dongle_t* dongle, char r_l
         usleep(2000);
     }
 }
-
 
 int	fifo_rq_right_d(proccess_args_t* args)
 {
@@ -312,16 +299,24 @@ int fifo_request_dongles(proccess_args_t* args)
 }
 
 
-// void heapify_deadline(t_heap* heap_queue)
-// {
-// 	int	i;
+void heap_deadline(t_queue* heap_queue, proccess_args_t* args)
+{
+	coder_t*	coder1;
+	coder_t*	coder2;
+	int			id;
 
-// 	if (heap_queue->size < 2)
-// 		return;
-// 	i = 0;
-// 	while (i < heap_queue->size-)
+	if (heap_queue->size < 2)
+		return;
+	coder1 = &args->data->coders[heap_queue->buffer[0]];
+	coder2 = &args->data->coders[heap_queue->buffer[1]];
 	
-// }
+	if (coder1->last_proccess_time > coder2->last_proccess_time)
+	{
+		id = heap_queue->buffer[0];
+		heap_queue->buffer[0] = heap_queue->buffer[1];
+		heap_queue->buffer[1] = id;
+	}
+}
 
 int	edf_rq_right_d(proccess_args_t* args)
 {
@@ -336,9 +331,9 @@ int	edf_rq_right_d(proccess_args_t* args)
 			pthread_mutex_unlock(&r_dongle->mutix_queue);
 			return (0);
 		}
-		if (r_dongle->heap_queue.buffer[0] == args->coder->id)
+		heap_deadline(&r_dongle->queue, args);
+		if (r_dongle->queue.buffer[0] == args->coder->id)
 			break;
-
 		pthread_cond_wait(&r_dongle->scheduler_cond, &r_dongle->mutix_queue);
 	}
 
@@ -353,6 +348,36 @@ int	edf_rq_right_d(proccess_args_t* args)
 	return (1);
 }
 
+int	edf_rq_left_d(proccess_args_t* args)
+{
+	usb_dongle_t*	l_dongle;
+
+	l_dongle = &args->data->dongles[args->coder->l_d_id];
+	pthread_mutex_lock(&l_dongle->mutix_queue);
+	while (1)
+	{
+		if (simulation_stoped(args))
+		{
+			pthread_mutex_unlock(&l_dongle->mutix_queue);
+			return (0);
+		}
+		heap_deadline(&l_dongle->queue, args);
+		if (l_dongle->queue.buffer[0] == args->coder->id)
+			break;
+		pthread_cond_wait(&l_dongle->scheduler_cond, &l_dongle->mutix_queue);
+	}
+
+	if (!take_dongle_when_ready(args, l_dongle, 'l'))
+	{
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		return (0);
+	}
+	pthread_mutex_unlock(&l_dongle->mutix_queue);
+	printf("%-6lld %d has taken left dongle %d\n", ms_time() - args->start_time, args->coder->id, l_dongle->id);
+	fflush(stdout);
+	return (1);
+}
+
 
 int edf_request_dongles(proccess_args_t* args)
 {
@@ -362,22 +387,40 @@ int edf_request_dongles(proccess_args_t* args)
 	r_dongle = &args->data->dongles[args->coder->r_d_id];
 	l_dongle = &args->data->dongles[args->coder->l_d_id];
 
-
-	pthread_mutex_lock(&r_dongle->mutix_queue);
-	pthread_mutex_lock(&l_dongle->mutix_queue);
+	if (r_dongle->id % 2)
+	{
+		pthread_mutex_lock(&r_dongle->mutix_queue);
+		usleep(1000);
+		pthread_mutex_lock(&l_dongle->mutix_queue);
+	}
+	else
+	{
+		pthread_mutex_lock(&l_dongle->mutix_queue);
+		usleep(1000);
+		pthread_mutex_lock(&r_dongle->mutix_queue);
+	}
 	
-	push_back(&r_dongle->heap_queue, args->coder->id);
-	push_back(&l_dongle->heap_queue, args->coder->id);
+	push_back_if_missing(&r_dongle->queue, args->coder->id);
+	push_back_if_missing(&l_dongle->queue, args->coder->id);
 
-	pthread_mutex_unlock(&r_dongle->mutix_queue);
-	pthread_mutex_unlock(&l_dongle->mutix_queue);
-
-	if (!edf_rq_right_d(args))
-		return 0;
-	if (!fifo_rq_left_d(args))
-		return 0;
-
-	
+	if (r_dongle->id % 2)
+	{
+		pthread_mutex_unlock(&r_dongle->mutix_queue);
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		if (!fifo_rq_right_d(args))
+			return 0;
+		if (!fifo_rq_left_d(args))
+			return 0;
+	}
+	else
+	{
+		pthread_mutex_unlock(&l_dongle->mutix_queue);
+		pthread_mutex_unlock(&r_dongle->mutix_queue);
+		if (!fifo_rq_left_d(args))
+			return 0;
+		if (!fifo_rq_right_d(args))
+			return 0;
+	}
     return (1);
 }
 
@@ -391,7 +434,9 @@ static void* coder_proccess(void* args_t)
 	args->start_time = ms_time();
 	while (compiled_times < args->data->number_of_compiles_required)
 	{
-		if (!fifo_request_dongles(args))
+		// if (!fifo_request_dongles(args))
+		// 	break;
+		if (!edf_request_dongles(args))
 			break;
 		pthread_mutex_lock(&args->coder->working_mutix);
 		args->coder->working = 1;
