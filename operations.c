@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:35 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/06 17:09:36 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 20:01:10 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,14 +26,14 @@ void wait_time(struct timespec *ts, long ms)
     }
 }
 
-int compile(proccess_args_t* args)
+int compile(t_args* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%-6lld %d is compiling\n", curent_time - args->start_time, args->coder->id);
+    printf("%-6lld %d is compiling\n", curent_time - args->start_time, args->coder->id + 1);
     fflush(stdout);
     
     struct timespec ts;
@@ -52,14 +52,14 @@ int compile(proccess_args_t* args)
     return (1);
 }
 
-int debug(proccess_args_t* args)
+int debug(t_args* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%-6lld %d is debugging\n", curent_time - args->start_time, args->coder->id);
+    printf("%-6lld %d is debugging\n", curent_time - args->start_time, args->coder->id + 1);
     fflush(stdout);
     
     struct timespec ts;
@@ -78,14 +78,14 @@ int debug(proccess_args_t* args)
     return (1);
 }
 
-int refactor(proccess_args_t* args)
+int refactor(t_args* args)
 {
     long long   curent_time;
     int         stopped;
     int         ret;
 
     curent_time = ms_time();
-    printf("%-6lld %d is refactoring\n", curent_time - args->start_time, args->coder->id);
+    printf("%-6lld %d is refactoring\n", curent_time - args->start_time, args->coder->id + 1);
     fflush(stdout);
     
     struct timespec ts;

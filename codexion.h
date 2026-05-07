@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:23 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/06 18:32:17 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 17:18:59 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ typedef struct s_queue
 	int	use_push_later;
 }	t_queue;
 
-typedef struct usb_dongle_t
+typedef struct s_dongle
 {
 	int				id;
 	pthread_mutex_t	mutix_dongle;
@@ -40,23 +40,23 @@ typedef struct usb_dongle_t
 	long long		set_down_time;
 	pthread_mutex_t	mutix_queue;
 	t_queue			queue;
-}	usb_dongle_t;
+}	t_dongle;
 
-typedef struct coder_t
+typedef struct s_coder
 {
 	int				id;
 	long long		last_proccess_time;
 	int				r_d_id;
 	int				l_d_id;
-	usb_dongle_t	*right_dongle;
-	usb_dongle_t	*t_dongle;
+	t_dongle		*right_dongle;
+	t_dongle		*left_dongle;
 	pthread_t		thread_id;
 	int				working;
 	int				finish;
 	pthread_mutex_t	working_mutix;
-}	coder_t;
+}	t_coder;
 
-typedef struct data_t
+typedef struct s_data
 {
 	int				number_of_coders;
 	int				time_to_burnout;
@@ -68,29 +68,29 @@ typedef struct data_t
 	char			*scheduler;
 	int				error;
 	volatile int	stop;
-	usb_dongle_t	*dongles;
-	coder_t			*coders;
+	t_dongle		*dongles;
+	t_coder			*coders;
 	pthread_cond_t	stop_condation;
 	pthread_mutex_t	stop_mutix;
 	long long		start_time;
-}	data_t;
+}	t_data;
 
-typedef struct proccess_args_t
+typedef struct s_args
 {
-	data_t		*data;
-	coder_t		*coder;
+	t_data		*data;
+	t_coder		*coder;
 	long long	start_time;
-}	proccess_args_t;
+}	t_args;
 
-data_t		*parse_args(int argc, char **argv);
+t_data		*parse_args(int argc, char **argv);
 
-void		proccess(data_t *data, long long start_time);
+void		proccess(t_data *data, long long start_time);
 
-int			compile(proccess_args_t *args);
+int			compile(t_args *args);
 
-int			debug(proccess_args_t *args);
+int			debug(t_args *args);
 
-int			refactor(proccess_args_t *args);
+int			refactor(t_args *args);
 
 long long	ms_time(void);
 
@@ -102,6 +102,6 @@ void		push_back_if_missing(t_queue *q, int id);
 
 int			pop_front(t_queue *queue, int coder_finished);
 
-void		heap_deadline(t_queue *heap_queue, proccess_args_t *args);
+void		heap_deadline(t_queue *heap_queue, t_args *args);
 
 #endif

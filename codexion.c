@@ -6,14 +6,14 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:43 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/06 17:09:44 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 17:31:09 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 
 #include "codexion.h"
 
-static void	free_data(data_t* data)
+static void	free_data(t_data* data)
 {
 	int	i;
 
@@ -33,13 +33,13 @@ static void	free_data(data_t* data)
 	free(data);
 }
 
-static void	init_coders_and_dongles(data_t* data)
+static void	init_coders_and_dongles(t_data* data)
 {
 	int	i;
 	
 	i = 0;
-	data->coders = malloc(sizeof(coder_t) * data->number_of_coders);
-	data->dongles = malloc(sizeof(usb_dongle_t) * data->number_of_coders);
+	data->coders = malloc(sizeof(t_coder) * data->number_of_coders);
+	data->dongles = malloc(sizeof(t_dongle) * data->number_of_coders);
 	pthread_mutex_init(&data->stop_mutix, NULL);
 	pthread_cond_init(&data->stop_condation, NULL);
 	data->stop = 0;
@@ -69,7 +69,7 @@ static void	init_coders_and_dongles(data_t* data)
 	}
 }
 
-void	broadcast_all_coders(data_t* data)
+void	broadcast_all_coders(t_data* data)
 {
 	int	i;
 
@@ -85,7 +85,7 @@ void	broadcast_all_coders(data_t* data)
 
 void* monitor(void* d)
 {
-	data_t*	data;
+	t_data*	data;
 	int		index;
 	int		all_done;
 	long long	last_proccess_time;
@@ -122,7 +122,7 @@ void* monitor(void* d)
 			pthread_cond_broadcast(&data->stop_condation);
 			pthread_mutex_unlock(&data->stop_mutix);
 			broadcast_all_coders(data);
-			printf("%lld %d burned out\n", ms_time() - data->start_time, data->coders[index].id);
+			printf("%-6lld %d burned out\n", ms_time() - data->start_time, data->coders[index].id + 1);
 			return (NULL);
 		}
 		index++;
@@ -132,7 +132,7 @@ void* monitor(void* d)
 
 int	main(int argc, char **argv)
 {
-	data_t*	data;
+	t_data*	data;
 	pthread_t	monitor_thread;
 	long long	start_time;
 

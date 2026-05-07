@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:39 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/07 20:13:04 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 19:55:52 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,23 +178,69 @@ int fifo_request_dongles(t_args* args)
 	if (r_dongle->id % 2)
 	{
 		pthread_mutex_lock(&r_dongle->mutix_queue);
-		usleep(2000);
 		pthread_mutex_lock(&l_dongle->mutix_queue);
 	}
 	else
 	{
 		pthread_mutex_lock(&l_dongle->mutix_queue);
-		usleep(2000);
 		pthread_mutex_lock(&r_dongle->mutix_queue);
 	}
 	
-	push_back_if_missing(&r_dongle->queue, args->coder->id);
-	push_back_if_missing(&l_dongle->queue, args->coder->id);
+	if (r_dongle->queue.size >= 1 && l_dongle->queue.size >= 1)
+	{
+		push_back_if_missing(&r_dongle->queue, args->coder->id);
+		push_back_if_missing(&l_dongle->queue, args->coder->id);
+	}
+	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 0)
+	{
+		push_back(&r_dongle->queue, args->coder->id);
+		push_back(&l_dongle->queue, args->coder->id);
+
+		if (r_dongle->queue.push_later != -1)
+		{
+			push_back(&r_dongle->queue, r_dongle->queue.push_later);
+			r_dongle->queue.push_later = -1;
+		}
+		if (l_dongle->queue.push_later != -1)
+		{
+			push_back(&l_dongle->queue, l_dongle->queue.push_later);
+			l_dongle->queue.push_later = -1;
+		}
+	}
+	else if (r_dongle->queue.size == 1 && l_dongle->queue.size == 0)
+	{
+		push_back(&r_dongle->queue, args->coder->id);
+		if (!l_dongle->queue.use_push_later)
+			push_back(&l_dongle->queue, args->coder->id);
+		else if (l_dongle->queue.push_later == -1 &&
+    			!queue_has(&l_dongle->queue, args->coder->id))
+			l_dongle->queue.push_later = args->coder->id;
+		else
+		{
+			push_back(&l_dongle->queue, args->coder->id);
+			push_back(&l_dongle->queue, l_dongle->queue.push_later);
+			l_dongle->queue.push_later = -1;
+		}
+	}
+	else if (r_dongle->queue.size == 0 && l_dongle->queue.size == 1)
+	{
+		push_back(&l_dongle->queue, args->coder->id);
+		if (!r_dongle->queue.use_push_later)
+			push_back(&r_dongle->queue, args->coder->id);
+		else if (r_dongle->queue.push_later == -1 &&
+    			!queue_has(&r_dongle->queue, args->coder->id))
+			r_dongle->queue.push_later = args->coder->id;
+		else
+		{
+			push_back(&r_dongle->queue, args->coder->id);
+			push_back(&r_dongle->queue, r_dongle->queue.push_later);
+			r_dongle->queue.push_later = -1;
+		}
+	}
 
 	if (r_dongle->id % 2)
 	{
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
-		usleep(2000);
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
 		if (!fifo_rq_right_d(args))
 			return 0;
@@ -204,13 +250,13 @@ int fifo_request_dongles(t_args* args)
 	else
 	{
 		pthread_mutex_unlock(&l_dongle->mutix_queue);
-		usleep(2000);
 		pthread_mutex_unlock(&r_dongle->mutix_queue);
 		if (!fifo_rq_left_d(args))
 			return 0;
 		if (!fifo_rq_right_d(args))
 			return 0;
 	}
+	
     return (1);
 }
 

@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:10:15 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/06 17:10:16 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 17:17:55 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,10 +50,11 @@ static int	check_args(int argc)
 	return (0);
 }
 
-
-data_t*	parse_args(int argc, char **argv)
+t_data		*parse_args(int argc, char **argv)
 {
-	data_t* data = malloc(sizeof(data_t));
+	t_data	*data;
+
+	data = malloc(sizeof(t_data));
 	data->error = 0;
 	if (check_args(argc))
 	{
@@ -80,7 +81,7 @@ data_t*	parse_args(int argc, char **argv)
 		return (data);
 	if (strcmp(argv[8], "fifo") == 0)
 		return (data);
-	printf("the schedular value '%s' is not valid it should be 'fifo' or 'edf'!.\n", argv[8]);
+	printf("the schedular value '%s' is not valid!.\n", argv[8]);
 	data->error = 1;
 	return (data);
 }

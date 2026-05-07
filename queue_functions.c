@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:32 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/06 17:48:32 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/07 17:19:38 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,10 +69,10 @@ int	pop_front(t_queue *queue, int coder_finished)
 	return (value);
 }
 
-void	heap_deadline(t_queue *heap_queue, proccess_args_t *args)
+void	heap_deadline(t_queue *heap_queue, t_args *args)
 {
-	coder_t		*coder1;
-	coder_t		*coder2;
+	t_coder		*coder1;
+	t_coder		*coder2;
 	int			id;
 
 	if (heap_queue->size < 2)
