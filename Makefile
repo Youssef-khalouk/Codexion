@@ -5,14 +5,16 @@ CC = cc
 
 CFLAGS = -Wall -Wextra -Werror #-fsanitize=thread
 
-CODEXION_SRC = parser.c queue_functions.c proccess.c operations.c
+CODEXION_SRC = surce_code/parser.c surce_code/queue_functions.c \
+				surce_code/proccess.c surce_code/operations.c \
+				surce_code/dongle_utils.c
 
 CODEXION_OBJS = $(CODEXION_SRC:.c=.o)
 
 all: $(NAME)
 
 $(NAME): $(CODEXION_OBJS)
-	$(CC) $(CFLAGS) codexion.c $(CODEXION_OBJS) -o $(NAME)
+	$(CC) $(CFLAGS) surce_code/codexion.c $(CODEXION_OBJS) -o $(NAME)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

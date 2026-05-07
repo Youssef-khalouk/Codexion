@@ -39,11 +39,11 @@ int	push_back(t_queue *queue, int value)
 
 void	push_back_if_missing(t_queue *q, int id)
 {
-	if (!queue_has(q, id) && q->push_later != id)
+	if (!queue_has(q, id))
 		push_back(q, id);
 }
 
-int	pop_front(t_queue *queue, int coder_finished)
+int	pop_front(t_queue *queue)
 {
 	int	i;
 	int	value;
@@ -59,13 +59,6 @@ int	pop_front(t_queue *queue, int coder_finished)
 	}
 	queue->size--;
 	queue->rear--;
-	if (coder_finished)
-		queue->use_push_later = 0;
-	if (!queue->use_push_later && queue->push_later != -1)
-	{
-		push_back(queue, queue->push_later);
-		queue->push_later = -1;
-	}
 	return (value);
 }
 

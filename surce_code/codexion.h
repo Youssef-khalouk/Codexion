@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   codexion.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
+/*   By: marvin <marvin@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:23 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/07 17:18:59 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/08 00:11:50 by marvin           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,9 +27,6 @@ typedef struct s_queue
 	int	front;
 	int	rear;
 	int	size;
-	int	owner_id;
-	int	push_later;
-	int	use_push_later;
 }	t_queue;
 
 typedef struct s_dongle
@@ -84,7 +81,7 @@ typedef struct s_args
 
 t_data		*parse_args(int argc, char **argv);
 
-void		proccess(t_data *data, long long start_time);
+void		proccess_data(t_data *data, long long start_time);
 
 int			compile(t_args *args);
 
@@ -100,8 +97,18 @@ int			push_back(t_queue *queue, int value);
 
 void		push_back_if_missing(t_queue *q, int id);
 
-int			pop_front(t_queue *queue, int coder_finished);
+int			pop_front(t_queue *queue);
 
 void		heap_deadline(t_queue *heap_queue, t_args *args);
+
+void		setback_dongles(t_args* args);
+
+int			take_dongle_when_ready(t_args* args, t_dongle* dongle, char r_l);
+
+int			simulation_stoped(t_args * args);
+
+int			request_right_d(t_args* args, int edf);
+
+int			request_left_d(t_args* args, int edf);
 
 #endif

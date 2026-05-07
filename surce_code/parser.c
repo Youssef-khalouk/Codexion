@@ -1,21 +1,9 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   parser.c                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/06 17:10:15 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/07 17:17:55 by ykhalouk         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "codexion.h"
 
 static char	to_int(int *num, char *str)
 {
-	long	i;
-	int	count;
+	long long	i;
+	int			count;
 	
 	i = 0;
 	count = 0;
@@ -24,8 +12,7 @@ static char	to_int(int *num, char *str)
 	while (str[i + count] >= '0' && str[i + count] <= '9')
 		count++;
 	i = atol(str);
-	if (!count || count > 10 || 
-		i > 2147483647 || i < -2147483648)
+	if (!count || count > 10 || i > 2147483647 || i < -2147483648)
 	{
 		printf("the argument '%s' is not valid.\n", str);
 		*num = 0;
@@ -50,11 +37,10 @@ static int	check_args(int argc)
 	return (0);
 }
 
-t_data		*parse_args(int argc, char **argv)
-{
-	t_data	*data;
 
-	data = malloc(sizeof(t_data));
+t_data	*parse_args(int argc, char **argv)
+{
+	t_data* data = malloc(sizeof(t_data));
 	data->error = 0;
 	if (check_args(argc))
 	{
@@ -81,7 +67,7 @@ t_data		*parse_args(int argc, char **argv)
 		return (data);
 	if (strcmp(argv[8], "fifo") == 0)
 		return (data);
-	printf("the schedular value '%s' is not valid!.\n", argv[8]);
+	printf("the schedular value '%s' is not valid it should be 'fifo' or 'edf'!.\n", argv[8]);
 	data->error = 1;
 	return (data);
 }

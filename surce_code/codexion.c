@@ -59,9 +59,6 @@ static void	init_coders_and_dongles(t_data* data)
 		data->dongles[i].queue.front = 0;
 		data->dongles[i].queue.rear = 0;
 		data->dongles[i].queue.size = 0;
-		data->dongles[i].queue.owner_id = -1;
-		data->dongles[i].queue.push_later = -1;
-		data->dongles[i].queue.use_push_later = 1;
 		pthread_cond_init(&data->dongles[i].scheduler_cond, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_dongle, NULL);
 		pthread_mutex_init(&data->dongles[i].mutix_queue, NULL);
@@ -143,7 +140,7 @@ int	main(int argc, char **argv)
 		return (free_data(data), 1);
 	data->start_time = start_time;
 	pthread_create(&monitor_thread, NULL, monitor, (void*)data);
-	proccess(data, start_time);
+	proccess_data(data, start_time);
 	pthread_join(monitor_thread, NULL);
 
 	return (free_data(data), 0);
