@@ -7,7 +7,8 @@ CFLAGS = -Wall -Wextra -Werror #-fsanitize=thread
 
 CODEXION_SRC = surce_code/parser.c surce_code/queue_functions.c \
 				surce_code/proccess.c surce_code/operations.c \
-				surce_code/dongle_utils.c
+				surce_code/dongle_utils.c surce_code/init_utils.c \
+				surce_code/monitor.c
 
 CODEXION_OBJS = $(CODEXION_SRC:.c=.o)
 
@@ -24,7 +25,7 @@ run:
 
 run2:
 	clear
-	./codexion 20 110 50 20 10 200 20 edf
+	./codexion 20 110 50 20 10 20 20 edf
 clean:
 	rm -rf $(CODEXION_OBJS)
 

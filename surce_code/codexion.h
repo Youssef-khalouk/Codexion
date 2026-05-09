@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   codexion.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: marvin <marvin@student.42.fr>              +#+  +:+       +#+        */
+/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:23 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/08 00:11:50 by marvin           ###   ########.fr       */
+/*   Updated: 2026/05/09 20:09:42 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,15 @@
 # include <pthread.h>
 # include <time.h>
 # include <sys/time.h>
+
+typedef enum e_print_type
+{
+	COMPILING,
+	DEBUGGING,
+	REFACTORING,
+	TAKEDONGLE,
+	BORNOUT
+}	t_print_type;
 
 typedef struct s_queue
 {
@@ -67,9 +76,10 @@ typedef struct s_data
 	volatile int	stop;
 	t_dongle		*dongles;
 	t_coder			*coders;
-	pthread_cond_t	stop_condation;
+	pthread_cond_t	stop_cond;
 	pthread_mutex_t	stop_mutix;
 	long long		start_time;
+	pthread_mutex_t	print_mutix;
 }	t_data;
 
 typedef struct s_args
@@ -101,14 +111,22 @@ int			pop_front(t_queue *queue);
 
 void		heap_deadline(t_queue *heap_queue, t_args *args);
 
-void		setback_dongles(t_args* args);
+void		setback_dongles(t_args *args);
 
-int			take_dongle_when_ready(t_args* args, t_dongle* dongle, char r_l);
+int			take_dongle_when_ready(t_args *args, t_dongle *dongle, char r_l);
 
-int			simulation_stoped(t_args * args);
+int			simulation_stoped(t_args *args);
 
-int			request_right_d(t_args* args, int edf);
+int			request_right_d(t_args *args, int edf);
 
-int			request_left_d(t_args* args, int edf);
+int			request_left_d(t_args *args, int edf);
+
+void		print(t_print_type type, t_args *args);
+
+void		free_data(t_data *data);
+
+void		init_coders_and_dongles(t_data *data);
+
+void		*monitor(void *d);
 
 #endif

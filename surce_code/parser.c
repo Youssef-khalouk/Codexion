@@ -1,10 +1,22 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   parser.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/09 16:33:53 by ykhalouk          #+#    #+#             */
+/*   Updated: 2026/05/09 16:34:43 by ykhalouk         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
 static char	to_int(int *num, char *str)
 {
 	long long	i;
 	int			count;
-	
+
 	i = 0;
 	count = 0;
 	if (str[i] == '+' || str[i] == '-')
@@ -40,7 +52,9 @@ static int	check_args(int argc)
 
 t_data	*parse_args(int argc, char **argv)
 {
-	t_data* data = malloc(sizeof(t_data));
+	t_data	*data;
+
+	data = malloc(sizeof(t_data));
 	data->error = 0;
 	if (check_args(argc))
 	{
@@ -67,7 +81,7 @@ t_data	*parse_args(int argc, char **argv)
 		return (data);
 	if (strcmp(argv[8], "fifo") == 0)
 		return (data);
-	printf("the schedular value '%s' is not valid it should be 'fifo' or 'edf'!.\n", argv[8]);
+	printf("the schedular value '%s' is not valid.\n", argv[8]);
 	data->error = 1;
 	return (data);
 }
