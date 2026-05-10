@@ -6,11 +6,20 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/09 16:33:53 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/09 16:34:43 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/10 15:06:36 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
+
+long long	ms_time(void)
+{
+	struct timeval	tv;
+
+	if (gettimeofday(&tv, NULL) != 0)
+		return (-1);
+	return (tv.tv_sec * 1000LL + tv.tv_usec / 1000);
+}
 
 static char	to_int(int *num, char *str)
 {
@@ -49,19 +58,8 @@ static int	check_args(int argc)
 	return (0);
 }
 
-
-t_data	*parse_args(int argc, char **argv)
+t_data	*set_args_to_struct(t_data *data, char **argv)
 {
-	t_data	*data;
-
-	data = malloc(sizeof(t_data));
-	data->error = 0;
-	if (check_args(argc))
-	{
-		data->error = 1;
-		data->number_of_coders = 0;
-		return (data);
-	}
 	if (!to_int(&data->number_of_coders, argv[1]))
 		data->error = 1;
 	if (!to_int(&data->time_to_burnout, argv[2]))
@@ -84,4 +82,19 @@ t_data	*parse_args(int argc, char **argv)
 	printf("the schedular value '%s' is not valid.\n", argv[8]);
 	data->error = 1;
 	return (data);
+}
+
+t_data	*parse_args(int argc, char **argv)
+{
+	t_data	*data;
+
+	data = malloc(sizeof(t_data));
+	data->error = 0;
+	if (check_args(argc))
+	{
+		data->error = 1;
+		data->number_of_coders = 0;
+		return (data);
+	}
+	return (set_args_to_struct(data, argv));
 }

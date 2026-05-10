@@ -8,7 +8,7 @@ CFLAGS = -Wall -Wextra -Werror #-fsanitize=thread
 CODEXION_SRC = surce_code/parser.c surce_code/queue_functions.c \
 				surce_code/proccess.c surce_code/operations.c \
 				surce_code/dongle_utils.c surce_code/init_utils.c \
-				surce_code/monitor.c
+				surce_code/monitor.c surce_code/dongle_utils2.c
 
 CODEXION_OBJS = $(CODEXION_SRC:.c=.o)
 

@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:23 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/09 20:09:42 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/10 15:13:17 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,8 +115,6 @@ void		setback_dongles(t_args *args);
 
 int			take_dongle_when_ready(t_args *args, t_dongle *dongle, char r_l);
 
-int			simulation_stoped(t_args *args);
-
 int			request_right_d(t_args *args, int edf);
 
 int			request_left_d(t_args *args, int edf);
@@ -128,5 +126,7 @@ void		free_data(t_data *data);
 void		init_coders_and_dongles(t_data *data);
 
 void		*monitor(void *d);
+
+int			request_dongles(t_args *args, int edf);
 
 #endif

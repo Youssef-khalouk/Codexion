@@ -6,13 +6,13 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 23:55:25 by marvin            #+#    #+#             */
-/*   Updated: 2026/05/09 17:39:31 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/10 15:13:32 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-int	simulation_stoped(t_args *args)
+static int	simulation_stoped(t_args *args)
 {
 	pthread_mutex_lock(&args->data->stop_mutix);
 	if (args->data->stop)

@@ -6,10 +6,9 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:43 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/09 20:09:08 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/10 15:07:49 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "codexion.h"
 
@@ -28,6 +27,5 @@ int	main(int argc, char **argv)
 	pthread_create(&monitor_thread, NULL, monitor, (void *)data);
 	proccess_data(data, start_time);
 	pthread_join(monitor_thread, NULL);
-
 	return (free_data(data), 0);
 }
