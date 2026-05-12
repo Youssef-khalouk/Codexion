@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:39 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/12 16:36:16 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/12 17:08:37 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,12 @@
 
 static int	start_work(t_args *args)
 {
-	pthread_mutex_lock(&args->coder->working_mutix);
-	args->coder->working = 1;
-	pthread_mutex_unlock(&args->coder->working_mutix);
+	pthread_mutex_lock(&args->coder->last_time_mutix);
+	args->coder->last_proccess_time = ms_time();
+	pthread_mutex_unlock(&args->coder->last_time_mutix);
 	if (!compile(args))
 		return (0);
 	setback_dongles(args);
-	pthread_mutex_lock(&args->coder->working_mutix);
-	args->coder->last_proccess_time = ms_time();
-	args->coder->working = 0;
-	pthread_mutex_unlock(&args->coder->working_mutix);
 	if (!debug(args))
 		return (0);
 	if (!refactor(args))
@@ -48,9 +44,9 @@ static void	*coder_proccess(void *args_t)
 		compiled_times++;
 	}
 	setback_dongles(args);
-	pthread_mutex_lock(&args->coder->working_mutix);
+	pthread_mutex_lock(&args->coder->last_time_mutix);
 	args->coder->finish = 1;
-	pthread_mutex_unlock(&args->coder->working_mutix);
+	pthread_mutex_unlock(&args->coder->last_time_mutix);
 	return (free(args_t), NULL);
 }
 

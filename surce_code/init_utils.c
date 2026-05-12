@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/09 18:30:50 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/09 19:43:13 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/12 17:04:59 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void	free_data(t_data *data)
 	i = 0;
 	while (i < data->number_of_coders)
 	{
-		pthread_mutex_destroy(&data->coders[i].working_mutix);
+		pthread_mutex_destroy(&data->coders[i].last_time_mutix);
 		pthread_mutex_destroy(&data->dongles[i].mutix_dongle);
 		pthread_mutex_destroy(&data->dongles[i].mutix_queue);
 		pthread_cond_destroy(&data->dongles[i].scheduler_cond);
@@ -39,11 +39,10 @@ static void	init_cd(t_coder *coder, t_dongle *dongle, int id, int nb_coders)
 	coder->last_proccess_time = ms_time();
 	coder->right_dongle = NULL;
 	coder->left_dongle = NULL;
-	coder->working = 0;
 	coder->finish = 0;
 	coder->r_d_id = id;
 	coder->l_d_id = (id + 1) % nb_coders;
-	pthread_mutex_init(&coder->working_mutix, NULL);
+	pthread_mutex_init(&coder->last_time_mutix, NULL);
 	dongle->id = id;
 	dongle->set_down_time = 0;
 	dongle->queue.front = 0;

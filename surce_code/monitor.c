@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/09 20:09:48 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/09 20:10:01 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/12 17:04:59 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,19 +54,6 @@ static int	reset_monitor_loop(int *index, int *all_done, t_data *data)
 	return (1);
 }
 
-static int	coder_is_working(t_data *data, int i, long long *l_p_t, int *done)
-{
-	int	working;
-
-	pthread_mutex_lock(&data->coders[i].working_mutix);
-	if (!data->coders[i].finish)
-		*done = 0;
-	working = data->coders[i].working;
-	*l_p_t = data->coders[i].last_proccess_time;
-	pthread_mutex_unlock(&data->coders[i].working_mutix);
-	return (working);
-}
-
 void	*monitor(void *d)
 {
 	t_data		*data;
@@ -81,11 +68,11 @@ void	*monitor(void *d)
 	{
 		if (!reset_monitor_loop(&index, &all_done, data))
 			return (NULL);
-		if (coder_is_working(data, index, &last_proccess_time, &all_done))
-		{
-			index++;
-			continue ;
-		}
+		pthread_mutex_lock(&data->coders[index].last_time_mutix);
+		if (!data->coders[index].finish)
+			all_done = 0;
+		last_proccess_time = data->coders[index].last_proccess_time;
+		pthread_mutex_unlock(&data->coders[index].last_time_mutix);
 		if ((ms_time() - last_proccess_time) >= data->time_to_burnout)
 			return (some_one_bornout(data, index), NULL);
 		index++;

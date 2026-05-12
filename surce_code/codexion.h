@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:23 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/10 15:13:17 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/12 17:04:59 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,9 +57,8 @@ typedef struct s_coder
 	t_dongle		*right_dongle;
 	t_dongle		*left_dongle;
 	pthread_t		thread_id;
-	int				working;
 	int				finish;
-	pthread_mutex_t	working_mutix;
+	pthread_mutex_t	last_time_mutix;
 }	t_coder;
 
 typedef struct s_data
