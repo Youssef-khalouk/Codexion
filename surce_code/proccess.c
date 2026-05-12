@@ -6,7 +6,7 @@
 /*   By: ykhalouk <ykhalouk@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/06 17:09:39 by ykhalouk          #+#    #+#             */
-/*   Updated: 2026/05/10 15:09:51 by ykhalouk         ###   ########.fr       */
+/*   Updated: 2026/05/12 16:36:16 by ykhalouk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,14 +20,14 @@ static int	start_work(t_args *args)
 	if (!compile(args))
 		return (0);
 	setback_dongles(args);
-	if (!debug(args))
-		return (0);
-	if (!refactor(args))
-		return (0);
 	pthread_mutex_lock(&args->coder->working_mutix);
 	args->coder->last_proccess_time = ms_time();
 	args->coder->working = 0;
 	pthread_mutex_unlock(&args->coder->working_mutix);
+	if (!debug(args))
+		return (0);
+	if (!refactor(args))
+		return (0);
 	return (1);
 }
 
